@@ -13,7 +13,7 @@ import {
   Settings,
   Wallet,
   BarChart3,
-  ChevronsLeft,
+  ChevronLeft,
 } from 'lucide-react';
 
 const navigation = [
@@ -52,31 +52,23 @@ export function Sidebar() {
         </span>
       </div>
 
-      {/* Toggle button */}
-      <div className="px-3 py-3 border-b border-gray-200">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={cn(
-            'flex items-center gap-2 px-3 py-2 rounded-lg w-full',
-            'text-gray-500 hover:bg-gray-100 hover:text-gray-700',
-            'transition-all duration-300'
-          )}
-          title={isExpanded ? 'Zwiń menu' : 'Rozwiń menu'}
-        >
-          <div className={cn(
-            'flex-shrink-0 transition-transform duration-300',
-            isExpanded ? 'rotate-0' : 'rotate-180'
-          )}>
-            <ChevronsLeft className="h-5 w-5" />
-          </div>
-          <span className={cn(
-            'text-sm font-medium whitespace-nowrap transition-all duration-300',
-            isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden'
-          )}>
-            Zwiń menu
-          </span>
-        </button>
-      </div>
+      {/* Toggle button - floating on edge */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={cn(
+          'absolute top-20 -right-3 z-10',
+          'w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm',
+          'flex items-center justify-center',
+          'text-gray-400 hover:text-gray-600 hover:bg-gray-50',
+          'transition-all duration-300'
+        )}
+        title={isExpanded ? 'Zwiń menu' : 'Rozwiń menu'}
+      >
+        <ChevronLeft className={cn(
+          'h-4 w-4 transition-transform duration-300',
+          isExpanded ? 'rotate-0' : 'rotate-180'
+        )} />
+      </button>
 
       {/* Main navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
