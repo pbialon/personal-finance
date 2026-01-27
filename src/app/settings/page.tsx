@@ -482,17 +482,17 @@ function SettingsContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-red-50 rounded-lg border border-red-100">
+            <div className="flex-1">
               <p className="font-medium text-red-900">Usuń wszystkie transakcje</p>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 mt-1">
                 Ta akcja jest nieodwracalna. Wszystkie transakcje zostaną trwale usunięte.
               </p>
             </div>
             <Button
               variant="ghost"
               onClick={() => setShowDeleteModal(true)}
-              className="text-red-600 hover:bg-red-100 hover:text-red-700"
+              className="text-red-600 hover:bg-red-100 hover:text-red-700 shrink-0"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Usuń wszystko
