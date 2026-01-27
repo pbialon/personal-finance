@@ -584,6 +584,7 @@ function SettingsContent() {
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && deleteConfirmText === 'usuń' && handleDeleteAllTransactions()}
               placeholder="usuń"
               className="font-mono"
             />
