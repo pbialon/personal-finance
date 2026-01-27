@@ -32,22 +32,23 @@ export function HorizontalBarChart({ data, color = '#3b82f6' }: HorizontalBarCha
           <div
             key={item.name}
             className={cn(
-              'flex items-center gap-3 p-2 rounded-lg transition-colors cursor-default',
-              'hover:bg-gray-50'
+              'flex items-center gap-3 p-2 rounded-lg transition-all duration-200 cursor-default group',
+              'hover:bg-gray-50/80 hover:shadow-sm'
             )}
           >
             {/* Day name */}
             <span className={cn(
-              'w-28 text-sm shrink-0',
-              isMax ? 'font-medium text-gray-900' : 'text-gray-600'
+              'w-28 text-sm shrink-0 transition-colors duration-200',
+              isMax ? 'font-medium text-gray-900' : 'text-gray-600',
+              'group-hover:text-gray-900'
             )}>
               {item.name}
             </span>
 
             {/* Bar */}
-            <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden relative">
+            <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden relative group-hover:bg-gray-200/50 transition-colors duration-200">
               <div
-                className="h-full rounded-md transition-all duration-500 ease-out"
+                className="h-full rounded-md transition-all duration-300 ease-out group-hover:shadow-md"
                 style={{
                   width: `${Math.max(percentage, 3)}%`,
                   background: isMax
