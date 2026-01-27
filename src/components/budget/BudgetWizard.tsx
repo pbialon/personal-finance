@@ -7,8 +7,7 @@ import { cn, addMonths, getFirstDayOfMonth } from '@/lib/utils';
 import { WizardProgress } from './wizard/WizardProgress';
 import { MonthSelectStep } from './wizard/MonthSelectStep';
 import { IncomeStep } from './wizard/IncomeStep';
-import { FixedExpensesStep } from './wizard/FixedExpensesStep';
-import { CategoryBudgetsStep } from './wizard/CategoryBudgetsStep';
+import { ExpensesStep } from './wizard/ExpensesStep';
 import { SummaryStep } from './wizard/SummaryStep';
 import type {
   Category,
@@ -29,19 +28,7 @@ interface BudgetWizardProps {
   initialMonth?: Date;
 }
 
-const TOTAL_STEPS = 5;
-
-// Lista kategorii stałych wydatków
-const FIXED_CATEGORY_NAMES = [
-  'Czynsz',
-  'Rachunki',
-  'Subskrypcje',
-  'Ubezpieczenia',
-  'Kredyt',
-  'Rata',
-  'Internet',
-  'Telefon',
-];
+const TOTAL_STEPS = 4;
 
 export function BudgetWizard({
   isOpen,
@@ -58,11 +45,10 @@ export function BudgetWizard({
   const [incomes, setIncomes] = useState<WizardIncomeItem[]>([
     { id: 'main', name: 'Pensja', amount: 0 },
   ]);
-  const [fixedExpenses, setFixedExpenses] = useState<WizardExpenseItem[]>([]);
-  const [categoryBudgets, setCategoryBudgets] = useState<WizardExpenseItem[]>([]);
+  const [expenses, setExpenses] = useState<WizardExpenseItem[]>([]);
   const [existingBudgets, setExistingBudgets] = useState<Budget[]>([]);
   const [previousBudgets, setPreviousBudgets] = useState<Budget[]>([]);
-  const [historicalSpending, setHistoricalSpending] = useState<Record<string, number>>({});
+  const [previousMonthSpending, setPreviousMonthSpending] = useState<Record<string, number>>({});
   const [averageIncome, setAverageIncome] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
@@ -88,29 +74,34 @@ export function BudgetWizard({
     }
   }, [monthStr, prevMonthStr]);
 
-  // Pobierz historyczne wydatki (średnia z 3 miesięcy)
+  // Pobierz wydatki z poprzedniego miesiąca
   const fetchHistoricalData = useCallback(async () => {
     try {
-      const threeMonthsAgo = addMonths(selectedMonth, -3);
-      const startDate = getFirstDayOfMonth(threeMonthsAgo);
-      const endDate = getFirstDayOfMonth(selectedMonth);
+      // Pobierz wydatki z poprzedniego miesiąca
+      const oneMonthAgo = addMonths(selectedMonth, -1);
+      const twoMonthsAgo = addMonths(selectedMonth, -2);
+      const prevStartDate = getFirstDayOfMonth(oneMonthAgo);
+      const prevEndDate = getFirstDayOfMonth(selectedMonth);
 
       const res = await fetch(
-        `/api/analytics/category-spending?startDate=${startDate}&endDate=${endDate}`
+        `/api/analytics/category-spending?startDate=${prevStartDate}&endDate=${prevEndDate}`
       );
       if (res.ok) {
         const data = await res.json();
         const spending: Record<string, number> = {};
         data.forEach((item: { categoryId: string; amount: number }) => {
-          // Dzielimy przez 3 aby uzyskać średnią
-          spending[item.categoryId] = Math.round(item.amount / 3);
+          spending[item.categoryId] = Math.round(item.amount);
         });
-        setHistoricalSpending(spending);
+        setPreviousMonthSpending(spending);
       }
 
-      // Pobierz średni przychód
+      // Pobierz średni przychód z ostatnich 3 miesięcy
+      const threeMonthsAgo = addMonths(selectedMonth, -3);
+      const avgStartDate = getFirstDayOfMonth(threeMonthsAgo);
+      const avgEndDate = getFirstDayOfMonth(selectedMonth);
+
       const trendsRes = await fetch(
-        `/api/analytics/trends?startDate=${startDate}&endDate=${endDate}`
+        `/api/analytics/trends?startDate=${avgStartDate}&endDate=${avgEndDate}`
       );
       if (trendsRes.ok) {
         const trends = await trendsRes.json();
@@ -147,39 +138,18 @@ export function BudgetWizard({
         );
       }
 
-      // Wydatki stałe
-      const fixedCategoryIds = categories
-        .filter(
-          (c) =>
-            !c.is_savings &&
-            FIXED_CATEGORY_NAMES.some((name) =>
-              c.name.toLowerCase().includes(name.toLowerCase())
-            )
-        )
-        .map((c) => c.id);
-
-      const prevFixed = previousBudgets.filter(
-        (b) => !b.is_income && b.category_id && fixedCategoryIds.includes(b.category_id)
+      // Wydatki (wszystkie)
+      const prevExpenses = previousBudgets.filter(
+        (b) => !b.is_income && b.category_id
       );
-      setFixedExpenses(
-        prevFixed.map((b) => ({
-          categoryId: b.category_id!,
-          amount: b.planned_amount,
-        }))
-      );
-
-      // Budżety kategorii
-      const prevBudgets = previousBudgets.filter(
-        (b) => !b.is_income && b.category_id && !fixedCategoryIds.includes(b.category_id)
-      );
-      setCategoryBudgets(
-        prevBudgets.map((b) => ({
+      setExpenses(
+        prevExpenses.map((b) => ({
           categoryId: b.category_id!,
           amount: b.planned_amount,
         }))
       );
     }
-  }, [copyFromPrevious, previousBudgets, categories]);
+  }, [copyFromPrevious, previousBudgets]);
 
   // Reset stanu przy zamknięciu
   useEffect(() => {
@@ -187,25 +157,12 @@ export function BudgetWizard({
       setStep(1);
       setCopyFromPrevious(false);
       setIncomes([{ id: 'main', name: 'Pensja', amount: 0 }]);
-      setFixedExpenses([]);
-      setCategoryBudgets([]);
+      setExpenses([]);
     }
   }, [isOpen]);
 
   // Oblicz sumy
   const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
-  const totalFixed = fixedExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-  // Kategorie stałych wydatków
-  const fixedCategoryIds = categories
-    .filter(
-      (c) =>
-        !c.is_savings &&
-        FIXED_CATEGORY_NAMES.some((name) =>
-          c.name.toLowerCase().includes(name.toLowerCase())
-        )
-    )
-    .map((c) => c.id);
 
   // Walidacja kroków
   const canProceed = () => {
@@ -215,10 +172,8 @@ export function BudgetWizard({
       case 2:
         return totalIncome > 0;
       case 3:
-        return true; // Wydatki stałe są opcjonalne
+        return true; // Wydatki są opcjonalne
       case 4:
-        return true; // Budżety kategorii są opcjonalne
-      case 5:
         return true;
       default:
         return false;
@@ -255,23 +210,12 @@ export function BudgetWizard({
         }
       });
 
-      // Dodaj wydatki stałe
-      fixedExpenses.forEach((expense) => {
+      // Dodaj wydatki
+      expenses.forEach((expense) => {
         if (expense.amount > 0) {
           budgets.push({
             category_id: expense.categoryId,
             planned_amount: expense.amount,
-            is_income: false,
-          });
-        }
-      });
-
-      // Dodaj budżety kategorii
-      categoryBudgets.forEach((budget) => {
-        if (budget.amount > 0) {
-          budgets.push({
-            category_id: budget.categoryId,
-            planned_amount: budget.amount,
             is_income: false,
           });
         }
@@ -360,29 +304,18 @@ export function BudgetWizard({
               />
             )}
             {step === 3 && (
-              <FixedExpensesStep
-                fixedExpenses={fixedExpenses}
-                onFixedExpensesChange={setFixedExpenses}
+              <ExpensesStep
+                expenses={expenses}
+                onExpensesChange={setExpenses}
                 categories={categories}
                 totalIncome={totalIncome}
+                previousMonthSpending={previousMonthSpending}
               />
             )}
             {step === 4 && (
-              <CategoryBudgetsStep
-                categoryBudgets={categoryBudgets}
-                onCategoryBudgetsChange={setCategoryBudgets}
-                categories={categories}
-                fixedExpenseCategories={fixedCategoryIds}
-                totalIncome={totalIncome}
-                totalFixedExpenses={totalFixed}
-                historicalSpending={historicalSpending}
-              />
-            )}
-            {step === 5 && (
               <SummaryStep
                 incomes={incomes}
-                fixedExpenses={fixedExpenses}
-                categoryBudgets={categoryBudgets}
+                expenses={expenses}
                 categories={categories}
               />
             )}

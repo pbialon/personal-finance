@@ -7,21 +7,17 @@ import type { Category, WizardIncomeItem, WizardExpenseItem } from '@/types';
 
 interface SummaryStepProps {
   incomes: WizardIncomeItem[];
-  fixedExpenses: WizardExpenseItem[];
-  categoryBudgets: WizardExpenseItem[];
+  expenses: WizardExpenseItem[];
   categories: Category[];
 }
 
 export function SummaryStep({
   incomes,
-  fixedExpenses,
-  categoryBudgets,
+  expenses,
   categories,
 }: SummaryStepProps) {
   const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
-  const totalFixed = fixedExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalBudgets = categoryBudgets.reduce((sum, b) => sum + b.amount, 0);
-  const totalExpenses = totalFixed + totalBudgets;
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const savings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
 
@@ -32,8 +28,7 @@ export function SummaryStep({
   // Przygotuj dane do wykresu (prosty bar chart)
   const barData = [
     { label: 'Przychody', value: totalIncome, color: '#22C55E' },
-    { label: 'Stałe', value: totalFixed, color: '#F97316' },
-    { label: 'Budżety', value: totalBudgets, color: '#8B5CF6' },
+    { label: 'Wydatki', value: totalExpenses, color: '#8B5CF6' },
     { label: 'Oszczędności', value: Math.max(0, savings), color: '#3B82F6' },
   ];
 
@@ -128,47 +123,30 @@ export function SummaryStep({
 
         <div className="rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingDown className="h-4 w-4 text-orange-600" />
-            <span className="text-sm font-medium text-gray-900">Wydatki stałe</span>
+            <TrendingDown className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-medium text-gray-900">Wydatki</span>
           </div>
-          <div className="space-y-1 max-h-[120px] overflow-y-auto">
-            {fixedExpenses.filter(e => e.amount > 0).map((expense) => {
-              const cat = getCategory(expense.categoryId);
-              return (
-                <div key={expense.categoryId} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1">
-                    <DynamicIcon
-                      name={cat?.icon || null}
-                      className="w-4 h-4"
-                      style={{ color: cat?.color }}
-                    />
-                    <span className="text-gray-600 truncate">
-                      {cat?.name || 'Nieznana'}
-                    </span>
-                  </div>
-                  <span className="font-medium">{formatCurrency(expense.amount)}</span>
-                </div>
-              );
-            })}
-            {fixedExpenses.filter(e => e.amount > 0).length === 0 && (
-              <p className="text-sm text-gray-400">Brak wydatków stałych</p>
-            )}
+          <div className="text-sm text-gray-600">
+            {expenses.filter(e => e.amount > 0).length} kategorii
+          </div>
+          <div className="text-lg font-semibold text-gray-900 mt-1">
+            {formatCurrency(totalExpenses)}
           </div>
         </div>
       </div>
 
-      {/* Budżety kategorii */}
-      {categoryBudgets.filter(b => b.amount > 0).length > 0 && (
+      {/* Wydatki - szczegóły */}
+      {expenses.filter(e => e.amount > 0).length > 0 && (
         <div className="rounded-lg border border-gray-200 p-4">
           <span className="text-sm font-medium text-gray-900 mb-3 block">
-            Budżety kategorii
+            Planowane wydatki
           </span>
           <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto">
-            {categoryBudgets.filter(b => b.amount > 0).map((budget) => {
-              const cat = getCategory(budget.categoryId);
+            {expenses.filter(e => e.amount > 0).map((expense) => {
+              const cat = getCategory(expense.categoryId);
               return (
                 <div
-                  key={budget.categoryId}
+                  key={expense.categoryId}
                   className="flex items-center justify-between text-sm p-2 rounded"
                   style={{ backgroundColor: `${cat?.color || '#9CA3AF'}10` }}
                 >
@@ -182,7 +160,7 @@ export function SummaryStep({
                       {cat?.name || 'Nieznana'}
                     </span>
                   </div>
-                  <span className="font-medium">{formatCurrency(budget.amount)}</span>
+                  <span className="font-medium">{formatCurrency(expense.amount)}</span>
                 </div>
               );
             })}

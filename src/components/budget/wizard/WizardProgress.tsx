@@ -10,7 +10,7 @@ interface WizardProgressProps {
 }
 
 export function WizardProgress({ currentStep, totalSteps, labels }: WizardProgressProps) {
-  const defaultLabels = ['Miesiąc', 'Przychody', 'Stałe', 'Budżety', 'Podsumowanie'];
+  const defaultLabels = ['Miesiąc', 'Przychody', 'Wydatki', 'Podsumowanie'];
   const stepLabels = labels || defaultLabels;
 
   return (

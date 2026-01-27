@@ -142,13 +142,22 @@ export interface TimePeriodRange {
   compareEndDate?: string;
 }
 
+export interface FinancialHealthComponent {
+  value: number;
+  score: number;
+  target?: number;
+  change?: number;
+}
+
 export interface FinancialHealthScore {
   score: number;
+  previousScore?: number;
+  scoreChange?: number;
   components: {
-    savingsRate: { value: number; score: number; target: number };
-    expenseRatio: { value: number; score: number; target: number };
-    budgetAdherence: { value: number; score: number; target: number };
-    incomeStability: { value: number; score: number };
+    savingsRate: FinancialHealthComponent & { target: number };
+    expenseRatio: FinancialHealthComponent & { target: number };
+    budgetAdherence: FinancialHealthComponent & { target: number };
+    incomeStability: FinancialHealthComponent;
   };
 }
 
@@ -164,6 +173,11 @@ export interface SpendingPatterns {
   totalAmount: number;
   averageDaily: number;
   daysWithSpending: number;
+  previousByDayOfWeek?: { day: string; amount: number; count: number }[];
+  previousTotalAmount?: number;
+  previousAverageDaily?: number;
+  totalAmountChange?: number;
+  averageDailyChange?: number;
 }
 
 export interface CategoryAnalysis {
@@ -177,6 +191,10 @@ export interface CategoryAnalysis {
   percentOfTotal: number;
   monthlyTrend: { month: string; amount: number; prevYearAmount?: number }[];
   topMerchants: { name: string; amount: number; count: number }[];
+  previousTotalAmount?: number;
+  previousAverageAmount?: number;
+  totalAmountChange?: number;
+  averageAmountChange?: number;
 }
 
 export interface TopSpenders {
@@ -186,6 +204,8 @@ export interface TopSpenders {
     count: number;
     categoryName?: string;
     categoryColor?: string;
+    previousRank?: number;
+    rankChange?: number | 'NEW';
   }[];
   topTransactions: {
     id: string;
@@ -199,6 +219,12 @@ export interface TopSpenders {
     recurring: number;
     oneTime: number;
   };
+  previousRecurringVsOneTime?: {
+    recurring: number;
+    oneTime: number;
+  };
+  recurringChange?: number;
+  oneTimeChange?: number;
 }
 
 export interface YearOverview {
@@ -277,12 +303,11 @@ export interface WizardExpenseItem {
 }
 
 export interface WizardState {
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4;
   month: string;
   copyFromPrevious: boolean;
   incomes: WizardIncomeItem[];
-  fixedExpenses: WizardExpenseItem[];
-  categoryBudgets: WizardExpenseItem[];
+  expenses: WizardExpenseItem[];
 }
 
 export interface WizardBudgetPayload {
