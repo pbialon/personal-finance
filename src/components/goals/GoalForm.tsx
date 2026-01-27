@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { DeadlinePicker } from '@/components/ui/DeadlinePicker';
 import type { GoalWithProgress } from '@/types';
 
 interface GoalFormProps {
@@ -111,12 +112,11 @@ export function GoalForm({ goal, onSubmit, onCancel }: GoalFormProps) {
         />
       </div>
 
-      <Input
-        id="deadline"
-        label="Termin realizacji (opcjonalnie)"
-        type="month"
+      <DeadlinePicker
         value={deadline}
-        onChange={(e) => setDeadline(e.target.value)}
+        onChange={setDeadline}
+        label="Termin realizacji (opcjonalnie)"
+        placeholder="Wybierz miesiąc"
       />
 
       <div>
