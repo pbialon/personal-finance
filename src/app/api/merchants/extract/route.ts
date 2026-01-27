@@ -33,7 +33,7 @@ Transaction info:
 - Counterparty: "${counterpartyName}"
 - Description: "${description}"
 
-Existing merchants in database: ${existingMerchants.length > 0 ? existingMerchants.join(', ') : 'none'}
+Existing merchants in database (CASE-INSENSITIVE, must match if brand is same): ${existingMerchants.length > 0 ? existingMerchants.join(', ') : 'none'}
 
 Available categories:
 ${categoriesPrompt}
@@ -50,7 +50,9 @@ CRITICAL RULES:
    - "BOLT OPERATIONS OU" → "Bolt"
    - "ALLEGRO SP. Z O.O." → "Allegro"
 
-2. If an existing merchant name matches the brand (ignoring case), return that EXACT existing name
+2. CRITICAL: If the extracted brand matches ANY existing merchant (case-insensitive), return "is_existing": true and use that merchant name!
+   Example: If "Orlen" exists and you see "ORLEN STACJA NR 442" → return merchant_name: "Orlen", is_existing: true
+   Example: If "Wolt" exists and you see "WOLT WARSAW POL" → return merchant_name: "Wolt", is_existing: true
 3. Return null for personal transfers (person names, IBAN transfers to individuals)
 4. Select the most appropriate category based on merchant type
 
@@ -133,7 +135,34 @@ export async function POST(request: NextRequest) {
       .select('id, name, display_name');
 
     const merchantNames = existingMerchants?.map((m) => m.name) || [];
-    const merchantMap = new Map(existingMerchants?.map((m) => [m.name, m.id]) || []);
+
+    // Case-insensitive map: lowercase name -> { id, originalName }
+    const merchantMapLower = new Map(
+      existingMerchants?.map((m) => [m.name.toLowerCase(), { id: m.id, name: m.name }]) || []
+    );
+
+    // Function to find existing merchant (case-insensitive)
+    const findExistingMerchant = (name: string): { id: string; name: string } | null => {
+      const lower = name.toLowerCase().trim();
+
+      // Exact match (case-insensitive)
+      if (merchantMapLower.has(lower)) {
+        return merchantMapLower.get(lower) || null;
+      }
+
+      // Check if any existing merchant name starts with the same word (for brand matching)
+      const firstWord = lower.split(/[\s\-_]/)[0];
+      if (firstWord.length >= 3) {
+        for (const [existingLower, data] of merchantMapLower) {
+          const existingFirstWord = existingLower.split(/[\s\-_]/)[0];
+          if (existingFirstWord === firstWord) {
+            return data;
+          }
+        }
+      }
+
+      return null;
+    };
 
     // Get categories for AI suggestion
     const { data: categories } = await supabase
@@ -177,9 +206,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        let merchantId = merchantMap.get(result.merchant_name);
+        // Case-insensitive lookup for existing merchant
+        const existingMerchant = findExistingMerchant(result.merchant_name);
+        let merchantId = existingMerchant?.id;
 
-        if (!merchantId && result.is_new) {
+        if (!merchantId) {
           // Create new merchant
           const iconUrl = await fetchMerchantIcon(result.website);
 
@@ -211,11 +242,15 @@ export async function POST(request: NextRequest) {
             merchantId = existing?.id;
           } else {
             merchantId = newMerchant.id;
-            merchantMap.set(result.merchant_name, merchantId);
+            // Add to case-insensitive map
+            merchantMapLower.set(result.merchant_name.toLowerCase(), {
+              id: merchantId,
+              name: result.merchant_name,
+            });
             merchantNames.push(result.merchant_name);
             newMerchants++;
           }
-        } else if (merchantId) {
+        } else {
           matched++;
         }
 
