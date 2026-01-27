@@ -15,6 +15,16 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
+  const handleLegendClick = useCallback((index: number) => {
+    const chart = chartRef.current?.chart;
+    if (chart && chart.series[0]) {
+      const point = chart.series[0].points[index];
+      if (point) {
+        point.select(undefined, true);
+      }
+    }
+  }, []);
+
   const handleLegendHover = useCallback((index: number | null) => {
     setHoveredIndex(index);
     const chart = chartRef.current?.chart;
@@ -139,6 +149,7 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
               )}
               onMouseEnter={() => handleLegendHover(index)}
               onMouseLeave={() => handleLegendHover(null)}
+              onClick={() => handleLegendClick(index)}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div
