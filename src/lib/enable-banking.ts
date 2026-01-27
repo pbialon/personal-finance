@@ -13,7 +13,13 @@ interface AuthorizationUrlResponse {
 
 interface Session {
   session_id: string;
-  accounts: Account[];
+  accounts: string[]; // Array of account UIDs
+  accounts_data?: AccountData[];
+}
+
+interface AccountData {
+  uid: string;
+  identification_hash: string;
 }
 
 interface Account {
@@ -24,30 +30,45 @@ interface Account {
 }
 
 interface Transaction {
-  transaction_id: string;
+  entry_reference: string;
+  transaction_id?: string | null;
   booking_date: string;
-  value_date?: string;
+  value_date?: string | null;
+  transaction_date?: string | null;
   transaction_amount: {
     amount: string;
     currency: string;
   };
-  creditor_name?: string;
+  credit_debit_indicator: 'CRDT' | 'DBIT';
+  creditor?: {
+    name?: string | null;
+    postal_address?: {
+      address_line?: string[];
+    };
+  };
   creditor_account?: {
-    iban?: string;
+    iban?: string | null;
+    other?: {
+      identification?: string;
+    };
   };
-  debtor_name?: string;
+  debtor?: {
+    name?: string | null;
+    postal_address?: {
+      address_line?: string[];
+    };
+  };
   debtor_account?: {
-    iban?: string;
+    iban?: string | null;
+    other?: {
+      identification?: string;
+    };
   };
-  remittance_information_unstructured?: string;
-  remittance_information_structured?: string;
+  remittance_information?: string[];
 }
 
 interface TransactionsResponse {
-  transactions: {
-    booked: Transaction[];
-    pending?: Transaction[];
-  };
+  transactions: Transaction[];
 }
 
 function getConfig(): EnableBankingConfig {
@@ -193,7 +214,7 @@ export async function getTransactions(
   }
 
   const data: TransactionsResponse = await response.json();
-  return data.transactions.booked;
+  return data.transactions || [];
 }
 
 export async function refreshSession(sessionId: string): Promise<boolean> {
@@ -225,29 +246,37 @@ export function mapTransaction(
   is_income: boolean;
 } {
   const amount = parseFloat(tx.transaction_amount.amount);
-  const isIncome = amount > 0;
+  const isIncome = tx.credit_debit_indicator === 'CRDT';
 
-  const counterpartyName = isIncome ? tx.debtor_name : tx.creditor_name;
-  const counterpartyAccount = isIncome
-    ? tx.debtor_account?.iban
-    : tx.creditor_account?.iban;
+  // Get counterparty info - for debits (expenses) it's the creditor, for credits (income) it's the debtor
+  const counterparty = isIncome ? tx.debtor : tx.creditor;
+  const counterpartyAcct = isIncome ? tx.debtor_account : tx.creditor_account;
+
+  const counterpartyName =
+    counterparty?.name ||
+    counterparty?.postal_address?.address_line?.[0] ||
+    null;
+
+  const counterpartyAccount =
+    counterpartyAcct?.iban ||
+    counterpartyAcct?.other?.identification ||
+    null;
 
   const description =
-    tx.remittance_information_unstructured ||
-    tx.remittance_information_structured ||
+    tx.remittance_information?.[0] ||
     counterpartyName ||
     'Brak opisu';
 
   return {
-    external_id: `${accountId}-${tx.transaction_id}-${tx.booking_date}`,
+    external_id: `${accountId}-${tx.entry_reference}-${tx.booking_date}`,
     bank_account_id: accountId,
     raw_description: description,
     amount: Math.abs(amount),
     currency: tx.transaction_amount.currency,
-    transaction_date: tx.value_date || tx.booking_date,
+    transaction_date: tx.value_date || tx.transaction_date || tx.booking_date,
     booking_date: tx.booking_date,
-    counterparty_account: counterpartyAccount || null,
-    counterparty_name: counterpartyName || null,
+    counterparty_account: counterpartyAccount,
+    counterparty_name: counterpartyName,
     is_income: isIncome,
   };
 }
