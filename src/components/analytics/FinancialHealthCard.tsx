@@ -24,6 +24,30 @@ function getScoreLabel(score: number): string {
   return 'Wymaga poprawy';
 }
 
+function ChangeIndicator({ change, inverse = false }: { change?: number; inverse?: boolean }) {
+  if (change === undefined) return null;
+  const isPositive = inverse ? change < 0 : change > 0;
+  const isNeutral = Math.abs(change) < 0.1;
+
+  if (isNeutral) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-gray-400">
+        <Minus className="h-3 w-3" />
+      </span>
+    );
+  }
+
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-0.5 text-xs font-medium',
+      isPositive ? 'text-green-600' : 'text-red-600'
+    )}>
+      {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {change > 0 ? '+' : ''}{change.toFixed(1)}
+    </span>
+  );
+}
+
 function ComponentRow({
   label,
   value,
@@ -31,6 +55,7 @@ function ComponentRow({
   target,
   unit = '%',
   inverse = false,
+  change,
 }: {
   label: string;
   value: number;
@@ -38,9 +63,8 @@ function ComponentRow({
   target?: number;
   unit?: string;
   inverse?: boolean;
+  change?: number;
 }) {
-  const isGood = inverse ? value <= (target || 70) : value >= (target || 20);
-
   return (
     <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
       <div className="flex items-center gap-2">
@@ -50,6 +74,7 @@ function ComponentRow({
         <span className="text-sm font-medium">
           {value.toFixed(1)}{unit}
         </span>
+        <ChangeIndicator change={change} inverse={inverse} />
         {target && (
           <span className="text-xs text-gray-400">
             (cel: {inverse ? '<' : '>'}{target}{unit})
@@ -69,7 +94,12 @@ function ComponentRow({
 }
 
 export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
-  const { data, loading, error } = useFinancialHealth(range.startDate, range.endDate);
+  const { data, loading, error } = useFinancialHealth(
+    range.startDate,
+    range.endDate,
+    range.compareStartDate,
+    range.compareEndDate
+  );
 
   if (error && !data) {
     return (
@@ -114,10 +144,21 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
         <div className="flex flex-col items-center mb-6">
           <GaugeChart value={data.score} max={100} color={scoreColor} />
           <div className="mt-2 text-center">
-            <span className="text-2xl font-bold" style={{ color: scoreColor }}>
-              {data.score}
-            </span>
-            <span className="text-gray-400">/100</span>
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-2xl font-bold" style={{ color: scoreColor }}>
+                {data.score}
+              </span>
+              <span className="text-gray-400">/100</span>
+              {data.scoreChange !== undefined && (
+                <span className={cn(
+                  'inline-flex items-center gap-0.5 text-sm font-medium px-2 py-0.5 rounded-full',
+                  data.scoreChange > 0 ? 'bg-green-100 text-green-700' : data.scoreChange < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                )}>
+                  {data.scoreChange > 0 ? <TrendingUp className="h-3 w-3" /> : data.scoreChange < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                  {data.scoreChange > 0 ? '+' : ''}{data.scoreChange}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-600 mt-1">{scoreLabel}</p>
           </div>
         </div>
@@ -128,6 +169,7 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
             value={data.components.savingsRate.value}
             score={data.components.savingsRate.score}
             target={data.components.savingsRate.target}
+            change={data.components.savingsRate.change}
           />
           <ComponentRow
             label="Wskaźnik wydatków"
@@ -135,18 +177,21 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
             score={data.components.expenseRatio.score}
             target={data.components.expenseRatio.target}
             inverse
+            change={data.components.expenseRatio.change}
           />
           <ComponentRow
             label="Realizacja budżetu"
             value={data.components.budgetAdherence.value}
             score={data.components.budgetAdherence.score}
             target={data.components.budgetAdherence.target}
+            change={data.components.budgetAdherence.change}
           />
           <ComponentRow
             label="Stabilność przychodów"
             value={data.components.incomeStability.value}
             score={data.components.incomeStability.score}
             unit=" CV"
+            change={data.components.incomeStability.change}
           />
         </div>
       </CardContent>

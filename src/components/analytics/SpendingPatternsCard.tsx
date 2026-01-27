@@ -13,8 +13,30 @@ interface SpendingPatternsCardProps {
   range: TimePeriodRange;
 }
 
+function ChangeIndicator({ change }: { change?: number }) {
+  if (change === undefined) return null;
+  const isPositive = change < 0; // For spending, decrease is positive
+  const isNeutral = Math.abs(change) < 0.5;
+
+  if (isNeutral) return null;
+
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-0.5 text-xs font-medium ml-2',
+      isPositive ? 'text-green-600' : 'text-red-600'
+    )}>
+      {change > 0 ? '+' : ''}{change.toFixed(1)}%
+    </span>
+  );
+}
+
 export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
-  const { data, loading, error } = useSpendingPatterns(range.startDate, range.endDate);
+  const { data, loading, error } = useSpendingPatterns(
+    range.startDate,
+    range.endDate,
+    range.compareStartDate,
+    range.compareEndDate
+  );
 
   // Parse month/year from range for CalendarHeatmap
   const startDate = new Date(range.startDate + 'T00:00:00');
@@ -66,7 +88,10 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
             </div>
             <div className="relative">
               <div className="text-xs font-medium text-slate-500 mb-1">Suma wydatków</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(data.totalAmount)}</div>
+              <div className="flex items-baseline">
+                <span className="text-2xl font-bold text-slate-900">{formatCurrency(data.totalAmount)}</span>
+                <ChangeIndicator change={data.totalAmountChange} />
+              </div>
             </div>
           </div>
           <div className="relative rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border border-blue-200/60">
@@ -75,7 +100,10 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
             </div>
             <div className="relative">
               <div className="text-xs font-medium text-blue-600 mb-1">Średnia dzienna</div>
-              <div className="text-2xl font-bold text-blue-900">{formatCurrency(data.averageDaily)}</div>
+              <div className="flex items-baseline">
+                <span className="text-2xl font-bold text-blue-900">{formatCurrency(data.averageDaily)}</span>
+                <ChangeIndicator change={data.averageDailyChange} />
+              </div>
             </div>
           </div>
           <div className="relative rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 border border-emerald-200/60">
@@ -93,9 +121,28 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Wydatki wg dnia tygodnia */}
           <div className="bg-gray-50/50 rounded-xl p-5 flex flex-col">
-            <h4 className="text-sm font-medium text-gray-700 mb-4">Wydatki wg dnia tygodnia</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-medium text-gray-700">Wydatki wg dnia tygodnia</h4>
+              {data.previousByDayOfWeek && (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-2 rounded bg-blue-500"></span>
+                    Teraz
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-2 rounded bg-gray-400"></span>
+                    Poprzednio
+                  </span>
+                </div>
+              )}
+            </div>
             <HorizontalBarChart
               data={data.byDayOfWeek.map((d) => ({
+                name: d.day,
+                value: d.amount,
+                count: d.count,
+              }))}
+              compareData={data.previousByDayOfWeek?.map((d) => ({
                 name: d.day,
                 value: d.amount,
                 count: d.count,

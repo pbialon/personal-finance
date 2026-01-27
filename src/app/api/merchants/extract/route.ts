@@ -17,6 +17,23 @@ interface ExtractedMerchant {
   category_id?: string;
 }
 
+// Common prefixes that should not be used for matching
+const EXCLUDED_PREFIXES = new Set([
+  'sklep', 'shop', 'store', 'market', 'super', 'mini', 'punkt', 'salon',
+  'restauracja', 'bar', 'kawiarnia', 'pizzeria', 'kebab', 'stacja',
+]);
+
+// Get normalized brand name for matching (skips common prefixes)
+function getNormalizedBrand(name: string): string {
+  const words = name.toLowerCase().split(/[\s\-_]+/);
+  for (const word of words) {
+    if (!EXCLUDED_PREFIXES.has(word) && word.length >= 3) {
+      return word;
+    }
+  }
+  return name.toLowerCase().replace(/[\s\-_]+/g, '');
+}
+
 async function extractMerchantFromTransaction(
   counterpartyName: string,
   description: string,
@@ -141,7 +158,17 @@ export async function POST(request: NextRequest) {
       existingMerchants?.map((m) => [m.name.toLowerCase(), { id: m.id, name: m.name }]) || []
     );
 
-    // Function to find existing merchant (case-insensitive)
+    // Pre-compute normalized brand names for all existing merchants
+    const brandToMerchant = new Map<string, { id: string; name: string }>();
+    for (const [lowerName, data] of merchantMapLower) {
+      const brand = getNormalizedBrand(data.name);
+      // Only use first match (prefer merchants added earlier)
+      if (!brandToMerchant.has(brand)) {
+        brandToMerchant.set(brand, data);
+      }
+    }
+
+    // Function to find existing merchant (case-insensitive, brand-aware)
     const findExistingMerchant = (name: string): { id: string; name: string } | null => {
       const lower = name.toLowerCase().trim();
 
@@ -150,15 +177,10 @@ export async function POST(request: NextRequest) {
         return merchantMapLower.get(lower) || null;
       }
 
-      // Check if any existing merchant name starts with the same word (for brand matching)
-      const firstWord = lower.split(/[\s\-_]/)[0];
-      if (firstWord.length >= 3) {
-        for (const [existingLower, data] of merchantMapLower) {
-          const existingFirstWord = existingLower.split(/[\s\-_]/)[0];
-          if (existingFirstWord === firstWord) {
-            return data;
-          }
-        }
+      // Try matching by normalized brand name
+      const brand = getNormalizedBrand(name);
+      if (brandToMerchant.has(brand)) {
+        return brandToMerchant.get(brand) || null;
       }
 
       return null;

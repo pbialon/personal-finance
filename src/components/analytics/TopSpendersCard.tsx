@@ -11,8 +11,30 @@ interface TopSpendersCardProps {
   range: TimePeriodRange;
 }
 
+function RankChange({ change }: { change?: number | 'NEW' }) {
+  if (change === undefined) return null;
+  if (change === 'NEW') {
+    return <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">NEW</span>;
+  }
+  if (change === 0) return null;
+  const isUp = change > 0;
+  return (
+    <span className={cn(
+      'text-[10px] font-medium px-1 py-0.5 rounded',
+      isUp ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
+    )}>
+      {isUp ? '↑' : '↓'}{Math.abs(change)}
+    </span>
+  );
+}
+
 export function TopSpendersCard({ range }: TopSpendersCardProps) {
-  const { data, loading, error } = useTopSpenders(range.startDate, range.endDate);
+  const { data, loading, error } = useTopSpenders(
+    range.startDate,
+    range.endDate,
+    range.compareStartDate,
+    range.compareEndDate
+  );
 
   if (error && !data) {
     return (
@@ -70,7 +92,10 @@ export function TopSpendersCard({ range }: TopSpendersCardProps) {
                       {idx + 1}
                     </span>
                     <div>
-                      <p className="text-sm font-medium">{merchant.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{merchant.name}</p>
+                        <RankChange change={merchant.rankChange} />
+                      </div>
                       <p className="text-xs text-gray-400">{merchant.count} transakcji</p>
                     </div>
                   </div>
@@ -121,11 +146,31 @@ export function TopSpendersCard({ range }: TopSpendersCardProps) {
             <div className="mt-4 flex justify-center gap-6 text-sm">
               <div className="text-center">
                 <p className="text-gray-500">Cykliczne</p>
-                <p className="font-semibold">{formatCurrency(data.recurringVsOneTime.recurring)}</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="font-semibold">{formatCurrency(data.recurringVsOneTime.recurring)}</p>
+                  {data.recurringChange !== undefined && Math.abs(data.recurringChange) >= 0.5 && (
+                    <span className={cn(
+                      'text-xs',
+                      data.recurringChange < 0 ? 'text-green-600' : 'text-red-600'
+                    )}>
+                      {data.recurringChange > 0 ? '+' : ''}{data.recurringChange.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="text-center">
                 <p className="text-gray-500">Jednorazowe</p>
-                <p className="font-semibold">{formatCurrency(data.recurringVsOneTime.oneTime)}</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="font-semibold">{formatCurrency(data.recurringVsOneTime.oneTime)}</p>
+                  {data.oneTimeChange !== undefined && Math.abs(data.oneTimeChange) >= 0.5 && (
+                    <span className={cn(
+                      'text-xs',
+                      data.oneTimeChange < 0 ? 'text-green-600' : 'text-red-600'
+                    )}>
+                      {data.oneTimeChange > 0 ? '+' : ''}{data.oneTimeChange.toFixed(0)}%
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -71,7 +71,9 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
   const { data, loading, error } = useCategoryAnalysis(
     range.startDate,
     range.endDate,
-    selectedCategoryId || undefined
+    selectedCategoryId || undefined,
+    range.compareStartDate,
+    range.compareEndDate
   );
 
   // Auto-select top spending category on first load
@@ -210,11 +212,31 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 mb-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Suma</p>
-            <p className="text-lg font-semibold">{formatCurrency(data.totalAmount)}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-lg font-semibold">{formatCurrency(data.totalAmount)}</p>
+              {data.totalAmountChange !== undefined && Math.abs(data.totalAmountChange) >= 0.5 && (
+                <span className={cn(
+                  'text-xs font-medium',
+                  data.totalAmountChange < 0 ? 'text-green-600' : 'text-red-600'
+                )}>
+                  {data.totalAmountChange > 0 ? '+' : ''}{data.totalAmountChange.toFixed(0)}%
+                </span>
+              )}
+            </div>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Średnia/msc</p>
-            <p className="text-lg font-semibold">{formatCurrency(data.averageAmount)}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-lg font-semibold">{formatCurrency(data.averageAmount)}</p>
+              {data.averageAmountChange !== undefined && Math.abs(data.averageAmountChange) >= 0.5 && (
+                <span className={cn(
+                  'text-xs font-medium',
+                  data.averageAmountChange < 0 ? 'text-green-600' : 'text-red-600'
+                )}>
+                  {data.averageAmountChange > 0 ? '+' : ''}{data.averageAmountChange.toFixed(0)}%
+                </span>
+              )}
+            </div>
           </div>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Max miesiąc</p>

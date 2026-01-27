@@ -216,8 +216,8 @@ function getRangeKey(startDate: string, endDate: string, extra?: string): string
   return `${startDate}_${endDate}${extra ? `_${extra}` : ''}`;
 }
 
-export function useFinancialHealth(startDate: string, endDate: string) {
-  const cacheKey = getRangeKey(startDate, endDate);
+export function useFinancialHealth(startDate: string, endDate: string, compareStartDate?: string, compareEndDate?: string) {
+  const cacheKey = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
   const cached = rangeCache.financialHealth.get(cacheKey);
 
   const [data, setData] = useState<FinancialHealthScore | null>(cached || null);
@@ -225,7 +225,7 @@ export function useFinancialHealth(startDate: string, endDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    const key = getRangeKey(startDate, endDate);
+    const key = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
 
     if (!forceRefresh && rangeCache.financialHealth.has(key)) {
       setData(rangeCache.financialHealth.get(key)!);
@@ -244,7 +244,27 @@ export function useFinancialHealth(startDate: string, endDate: string) {
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch financial health');
 
-      const result = await response.json();
+      const result: FinancialHealthScore = await response.json();
+
+      // Fetch comparison data if dates provided
+      if (compareStartDate && compareEndDate) {
+        const compareParams = new URLSearchParams({
+          type: 'financial-health',
+          startDate: compareStartDate,
+          endDate: compareEndDate,
+        });
+        const compareResponse = await fetch(`/api/analytics?${compareParams}`);
+        if (compareResponse.ok) {
+          const prevResult: FinancialHealthScore = await compareResponse.json();
+          result.previousScore = prevResult.score;
+          result.scoreChange = result.score - prevResult.score;
+          result.components.savingsRate.change = result.components.savingsRate.value - prevResult.components.savingsRate.value;
+          result.components.expenseRatio.change = result.components.expenseRatio.value - prevResult.components.expenseRatio.value;
+          result.components.budgetAdherence.change = result.components.budgetAdherence.value - prevResult.components.budgetAdherence.value;
+          result.components.incomeStability.change = result.components.incomeStability.value - prevResult.components.incomeStability.value;
+        }
+      }
+
       rangeCache.financialHealth.set(key, result);
       setData(result);
     } catch (err) {
@@ -252,7 +272,7 @@ export function useFinancialHealth(startDate: string, endDate: string) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compareStartDate, compareEndDate]);
 
   useEffect(() => {
     fetchData();
@@ -263,8 +283,8 @@ export function useFinancialHealth(startDate: string, endDate: string) {
   return { data, loading, error, refresh };
 }
 
-export function useSpendingPatterns(startDate: string, endDate: string) {
-  const cacheKey = getRangeKey(startDate, endDate);
+export function useSpendingPatterns(startDate: string, endDate: string, compareStartDate?: string, compareEndDate?: string) {
+  const cacheKey = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
   const cached = rangeCache.spendingPatterns.get(cacheKey);
 
   const [data, setData] = useState<SpendingPatterns | null>(cached || null);
@@ -272,7 +292,7 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    const key = getRangeKey(startDate, endDate);
+    const key = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
 
     if (!forceRefresh && rangeCache.spendingPatterns.has(key)) {
       setData(rangeCache.spendingPatterns.get(key)!);
@@ -291,7 +311,30 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch spending patterns');
 
-      const result = await response.json();
+      const result: SpendingPatterns = await response.json();
+
+      // Fetch comparison data if dates provided
+      if (compareStartDate && compareEndDate) {
+        const compareParams = new URLSearchParams({
+          type: 'spending-patterns',
+          startDate: compareStartDate,
+          endDate: compareEndDate,
+        });
+        const compareResponse = await fetch(`/api/analytics?${compareParams}`);
+        if (compareResponse.ok) {
+          const prevResult: SpendingPatterns = await compareResponse.json();
+          result.previousByDayOfWeek = prevResult.byDayOfWeek;
+          result.previousTotalAmount = prevResult.totalAmount;
+          result.previousAverageDaily = prevResult.averageDaily;
+          result.totalAmountChange = prevResult.totalAmount > 0
+            ? ((result.totalAmount - prevResult.totalAmount) / prevResult.totalAmount) * 100
+            : 0;
+          result.averageDailyChange = prevResult.averageDaily > 0
+            ? ((result.averageDaily - prevResult.averageDaily) / prevResult.averageDaily) * 100
+            : 0;
+        }
+      }
+
       rangeCache.spendingPatterns.set(key, result);
       setData(result);
     } catch (err) {
@@ -299,7 +342,7 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compareStartDate, compareEndDate]);
 
   useEffect(() => {
     fetchData();
@@ -310,8 +353,8 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
   return { data, loading, error, refresh };
 }
 
-export function useCategoryAnalysis(startDate: string, endDate: string, categoryId?: string) {
-  const cacheKey = getRangeKey(startDate, endDate, categoryId);
+export function useCategoryAnalysis(startDate: string, endDate: string, categoryId?: string, compareStartDate?: string, compareEndDate?: string) {
+  const cacheKey = getRangeKey(startDate, endDate, categoryId ? `${categoryId}${compareStartDate ? `_cmp_${compareStartDate}_${compareEndDate}` : ''}` : undefined);
   const cached = categoryId ? rangeCache.categoryAnalysis.get(cacheKey) : null;
 
   const [data, setData] = useState<CategoryAnalysis | null>(cached || null);
@@ -325,7 +368,7 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
       return;
     }
 
-    const key = getRangeKey(startDate, endDate, categoryId);
+    const key = getRangeKey(startDate, endDate, categoryId ? `${categoryId}${compareStartDate ? `_cmp_${compareStartDate}_${compareEndDate}` : ''}` : undefined);
 
     if (!forceRefresh && rangeCache.categoryAnalysis.has(key)) {
       setData(rangeCache.categoryAnalysis.get(key)!);
@@ -345,7 +388,36 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch category analysis');
 
-      const result = await response.json();
+      const result: CategoryAnalysis = await response.json();
+
+      // Fetch comparison data if dates provided
+      if (compareStartDate && compareEndDate) {
+        const compareParams = new URLSearchParams({
+          type: 'category-analysis',
+          startDate: compareStartDate,
+          endDate: compareEndDate,
+          categoryId,
+        });
+        const compareResponse = await fetch(`/api/analytics?${compareParams}`);
+        if (compareResponse.ok) {
+          const prevResult: CategoryAnalysis = await compareResponse.json();
+          result.previousTotalAmount = prevResult.totalAmount;
+          result.previousAverageAmount = prevResult.averageAmount;
+          result.totalAmountChange = prevResult.totalAmount > 0
+            ? ((result.totalAmount - prevResult.totalAmount) / prevResult.totalAmount) * 100
+            : 0;
+          result.averageAmountChange = prevResult.averageAmount > 0
+            ? ((result.averageAmount - prevResult.averageAmount) / prevResult.averageAmount) * 100
+            : 0;
+          // Merge prev year amounts into monthlyTrend
+          const prevMonthMap = new Map(prevResult.monthlyTrend.map(m => [m.month, m.amount]));
+          result.monthlyTrend = result.monthlyTrend.map(m => ({
+            ...m,
+            prevYearAmount: prevMonthMap.get(m.month),
+          }));
+        }
+      }
+
       rangeCache.categoryAnalysis.set(key, result);
       setData(result);
     } catch (err) {
@@ -353,7 +425,7 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, categoryId]);
+  }, [startDate, endDate, categoryId, compareStartDate, compareEndDate]);
 
   useEffect(() => {
     fetchData();
@@ -364,8 +436,8 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
   return { data, loading, error, refresh };
 }
 
-export function useTopSpenders(startDate: string, endDate: string) {
-  const cacheKey = getRangeKey(startDate, endDate);
+export function useTopSpenders(startDate: string, endDate: string, compareStartDate?: string, compareEndDate?: string) {
+  const cacheKey = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
   const cached = rangeCache.topSpenders.get(cacheKey);
 
   const [data, setData] = useState<TopSpenders | null>(cached || null);
@@ -373,7 +445,7 @@ export function useTopSpenders(startDate: string, endDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    const key = getRangeKey(startDate, endDate);
+    const key = getRangeKey(startDate, endDate, compareStartDate ? `cmp_${compareStartDate}_${compareEndDate}` : undefined);
 
     if (!forceRefresh && rangeCache.topSpenders.has(key)) {
       setData(rangeCache.topSpenders.get(key)!);
@@ -392,7 +464,44 @@ export function useTopSpenders(startDate: string, endDate: string) {
       const response = await fetch(`/api/analytics?${params}`);
       if (!response.ok) throw new Error('Failed to fetch top spenders');
 
-      const result = await response.json();
+      const result: TopSpenders = await response.json();
+
+      // Fetch comparison data if dates provided
+      if (compareStartDate && compareEndDate) {
+        const compareParams = new URLSearchParams({
+          type: 'top-spenders',
+          startDate: compareStartDate,
+          endDate: compareEndDate,
+        });
+        const compareResponse = await fetch(`/api/analytics?${compareParams}`);
+        if (compareResponse.ok) {
+          const prevResult: TopSpenders = await compareResponse.json();
+
+          // Create a map of previous merchant rankings
+          const prevRankMap = new Map(prevResult.topMerchants.map((m, idx) => [m.name, idx + 1]));
+
+          // Add rank change info to current merchants
+          result.topMerchants = result.topMerchants.map((merchant, idx) => {
+            const currentRank = idx + 1;
+            const prevRank = prevRankMap.get(merchant.name);
+            return {
+              ...merchant,
+              previousRank: prevRank,
+              rankChange: prevRank ? prevRank - currentRank : 'NEW' as const,
+            };
+          });
+
+          // Add recurring vs one-time comparison
+          result.previousRecurringVsOneTime = prevResult.recurringVsOneTime;
+          result.recurringChange = prevResult.recurringVsOneTime.recurring > 0
+            ? ((result.recurringVsOneTime.recurring - prevResult.recurringVsOneTime.recurring) / prevResult.recurringVsOneTime.recurring) * 100
+            : 0;
+          result.oneTimeChange = prevResult.recurringVsOneTime.oneTime > 0
+            ? ((result.recurringVsOneTime.oneTime - prevResult.recurringVsOneTime.oneTime) / prevResult.recurringVsOneTime.oneTime) * 100
+            : 0;
+        }
+      }
+
       rangeCache.topSpenders.set(key, result);
       setData(result);
     } catch (err) {
@@ -400,7 +509,7 @@ export function useTopSpenders(startDate: string, endDate: string) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compareStartDate, compareEndDate]);
 
   useEffect(() => {
     fetchData();
