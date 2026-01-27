@@ -26,7 +26,11 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
       {categories.map((category) => (
         <Card key={category.id} className="p-4">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onEdit(category)}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center"
                 style={{ backgroundColor: category.color + '20' }}
@@ -38,13 +42,13 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
                   fallback={<span className="font-bold text-lg" style={{ color: category.color }}>{category.name.charAt(0).toUpperCase()}</span>}
                 />
               </div>
-              <div>
+              <div className="text-left">
                 <h3 className="font-medium text-gray-900">{category.name}</h3>
                 {category.is_savings && (
                   <span className="text-xs text-green-600">Oszczędności</span>
                 )}
               </div>
-            </div>
+            </button>
 
             <div className="flex gap-1">
               <Button
