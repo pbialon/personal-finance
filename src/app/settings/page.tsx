@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import type { BankConnection } from '@/types';
-import { formatDate, cn } from '@/lib/utils';
+import { formatDateTime, cn } from '@/lib/utils';
 
 function formatIban(iban: string): string {
   // Remove all spaces and format as groups of 4
@@ -287,7 +287,7 @@ function SettingsContent() {
                     <p className="text-sm text-gray-500">
                       Ostatnia synchronizacja:{' '}
                       {connection.last_sync_at
-                        ? formatDate(connection.last_sync_at)
+                        ? formatDateTime(connection.last_sync_at)
                         : 'Nigdy'}
                     </p>
                   </div>

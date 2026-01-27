@@ -158,8 +158,12 @@ export interface SpendingPatterns {
   categoryHeatmap: {
     category: string;
     color: string;
+    icon: string | null;
     days: number[];
   }[];
+  totalAmount: number;
+  averageDaily: number;
+  daysWithSpending: number;
 }
 
 export interface CategoryAnalysis {

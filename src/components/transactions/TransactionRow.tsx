@@ -13,10 +13,16 @@ interface TransactionRowProps {
 
 export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
   const displayName =
+    transaction.description ||
     transaction.merchant?.display_name ||
     transaction.display_name ||
     transaction.raw_description ||
     'Brak opisu';
+
+  // Subtitle: show merchant name if different from displayName
+  const subtitle = transaction.merchant?.display_name;
+  const showSubtitle = subtitle && subtitle !== displayName;
+
   const amount = transaction.is_income ? transaction.amount : -transaction.amount;
 
   const merchant = transaction.merchant;
@@ -70,16 +76,14 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
         >
           {displayName}
         </p>
-        {transaction.description && (
+        {showSubtitle && (
           <p
             className={cn(
               'text-sm truncate',
               transaction.is_ignored ? 'text-gray-300' : 'text-gray-500'
             )}
           >
-            {transaction.description.length > 60
-              ? transaction.description.slice(0, 60) + '...'
-              : transaction.description}
+            {subtitle}
           </p>
         )}
         <div className="flex items-center gap-2 mt-1">

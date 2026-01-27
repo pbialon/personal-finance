@@ -4,8 +4,25 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
   const search = searchParams.get('search');
 
+  // Get single merchant by ID
+  if (id) {
+    const { data, error } = await supabase
+      .from('merchants')
+      .select('*, category:categories(*)')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  }
+
+  // Get all merchants
   let query = supabase
     .from('merchants')
     .select('*, category:categories(*)')

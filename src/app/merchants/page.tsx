@@ -25,6 +25,7 @@ export default function MerchantsPage() {
   const [search, setSearch] = useState('');
   const [extracting, setExtracting] = useState(false);
   const [extractionStatus, setExtractionStatus] = useState<ExtractionStatus | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const fetchExtractionStatus = async () => {
     try {
@@ -100,13 +101,32 @@ export default function MerchantsPage() {
     setEditingMerchant(null);
   };
 
-  const filteredMerchants = search
-    ? merchants.filter(
-        (m) =>
-          m.display_name.toLowerCase().includes(search.toLowerCase()) ||
-          m.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : merchants;
+  const filteredMerchants = merchants.filter((m) => {
+    // Filter by search
+    if (search) {
+      const searchLower = search.toLowerCase();
+      if (
+        !m.display_name.toLowerCase().includes(searchLower) &&
+        !m.name.toLowerCase().includes(searchLower)
+      ) {
+        return false;
+      }
+    }
+    // Filter by category
+    if (selectedCategoryId === 'none' && m.category_id) {
+      return false;
+    }
+    if (selectedCategoryId && selectedCategoryId !== 'none' && m.category_id !== selectedCategoryId) {
+      return false;
+    }
+    return true;
+  });
+
+  // Get categories that have merchants
+  const categoriesWithMerchants = categories.filter((cat) =>
+    merchants.some((m) => m.category_id === cat.id)
+  );
+  const merchantsWithoutCategory = merchants.filter((m) => !m.category_id).length;
 
   return (
     <div className="space-y-6">
@@ -129,14 +149,59 @@ export default function MerchantsPage() {
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Szukaj kontrahenta..."
-          className="pl-10"
-        />
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Szukaj kontrahenta..."
+            className="pl-10"
+          />
+        </div>
+
+        {/* Category filters */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedCategoryId(null)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              selectedCategoryId === null
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Wszystkie
+          </button>
+          {categoriesWithMerchants.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? null : cat.id)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedCategoryId === cat.id
+                  ? 'text-white'
+                  : 'hover:opacity-80'
+              }`}
+              style={{
+                backgroundColor: selectedCategoryId === cat.id ? cat.color : cat.color + '20',
+                color: selectedCategoryId === cat.id ? 'white' : cat.color,
+              }}
+            >
+              {cat.name}
+            </button>
+          ))}
+          {merchantsWithoutCategory > 0 && (
+            <button
+              onClick={() => setSelectedCategoryId(selectedCategoryId === 'none' ? null : 'none')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedCategoryId === 'none'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Bez kategorii ({merchantsWithoutCategory})
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (

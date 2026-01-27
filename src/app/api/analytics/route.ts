@@ -363,6 +363,9 @@ export async function GET(request: NextRequest) {
 
     const categoryHeatmapData: Map<string, { name: string; color: string; icon: string | null; days: number[] }> = new Map();
 
+    let totalAmount = 0;
+    const daysWithSpendingSet = new Set<string>();
+
     transactions.forEach((t) => {
       const date = new Date(t.transaction_date + 'T00:00:00');
       const dayOfWeek = date.getDay();
@@ -371,6 +374,9 @@ export async function GET(request: NextRequest) {
       byDayOfWeek[dayOfWeek].amount += t.amount;
       byDayOfWeek[dayOfWeek].count += 1;
       byDayOfMonth[dayOfMonth - 1].amount += t.amount;
+
+      totalAmount += t.amount;
+      daysWithSpendingSet.add(t.transaction_date);
 
       if (t.category_id) {
         const cat = categoriesMap.get(t.category_id);
@@ -382,6 +388,9 @@ export async function GET(request: NextRequest) {
         }
       }
     });
+
+    const daysWithSpending = daysWithSpendingSet.size;
+    const averageDaily = daysWithSpending > 0 ? totalAmount / daysWithSpending : 0;
 
     // Reorder days to start from Monday
     const reorderedDays = [...byDayOfWeek.slice(1), byDayOfWeek[0]];
@@ -400,6 +409,9 @@ export async function GET(request: NextRequest) {
       byDayOfWeek: reorderedDays,
       byDayOfMonth,
       categoryHeatmap,
+      totalAmount,
+      averageDaily,
+      daysWithSpending,
     };
 
     return NextResponse.json(result);

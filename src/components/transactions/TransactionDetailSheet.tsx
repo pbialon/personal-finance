@@ -33,6 +33,7 @@ export function TransactionDetailSheet({
   if (!transaction) return null;
 
   const displayName =
+    transaction.description ||
     transaction.merchant?.display_name ||
     transaction.display_name ||
     transaction.raw_description ||
@@ -216,7 +217,7 @@ export function TransactionDetailSheet({
                     className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
                     onClick={onClose}
                   >
-                    {transaction.counterparty_name || merchant.display_name}
+                    {merchant.display_name}
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
                 ) : (

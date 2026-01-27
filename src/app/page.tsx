@@ -87,16 +87,16 @@ export default function Dashboard() {
             onClose={() => setIsMonthPickerOpen(false)}
             maxDate={new Date()}
           />
-        </div>
 
-        {!isCurrentMonth && (
-          <button
-            onClick={goToCurrentMonth}
-            className="ml-3 text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
-          >
-            Dzisiaj
-          </button>
-        )}
+          {!isCurrentMonth && (
+            <button
+              onClick={goToCurrentMonth}
+              className="absolute left-full ml-3 text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline whitespace-nowrap"
+            >
+              Bieżący miesiąc
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Show spinner only on initial load with no data */}
