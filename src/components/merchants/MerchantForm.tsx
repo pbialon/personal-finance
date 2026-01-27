@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { DynamicIcon } from '../ui/DynamicIcon';
 import type { Merchant, Category } from '@/types';
 
 interface MerchantFormProps {
   merchant: Merchant;
   categories: Category[];
+  suggestedCategoryId?: string | null;
   onSubmit: (data: {
     display_name: string;
     icon_url: string | null;
@@ -18,11 +21,12 @@ interface MerchantFormProps {
   onCancel: () => void;
 }
 
-export function MerchantForm({ merchant, categories, onSubmit, onCancel }: MerchantFormProps) {
+export function MerchantForm({ merchant, categories, suggestedCategoryId, onSubmit, onCancel }: MerchantFormProps) {
   const [loading, setLoading] = useState(false);
   const [displayName, setDisplayName] = useState(merchant.display_name);
   const [iconUrl, setIconUrl] = useState(merchant.icon_url || '');
-  const [categoryId, setCategoryId] = useState(merchant.category_id || '');
+  // Use merchant's category, or suggested category if merchant has no category
+  const [categoryId, setCategoryId] = useState(merchant.category_id || suggestedCategoryId || '');
   const [website, setWebsite] = useState(merchant.website || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,10 +46,7 @@ export function MerchantForm({ merchant, categories, onSubmit, onCancel }: Merch
     }
   };
 
-  const categoryOptions = [
-    { value: '', label: 'Bez kategorii' },
-    ...categories.map((c) => ({ value: c.id, label: c.name })),
-  ];
+  const selectedCategory = categories.find(c => c.id === categoryId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,12 +86,82 @@ export function MerchantForm({ merchant, categories, onSubmit, onCancel }: Merch
         </div>
       )}
 
-      <Select
-        label="Domyślna kategoria"
-        value={categoryId}
-        onChange={(e) => setCategoryId(e.target.value)}
-        options={categoryOptions}
-      />
+      {/* Category picker */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Domyślna kategoria
+        </label>
+
+        {/* Selected category display */}
+        {selectedCategory ? (
+          <div
+            className="flex items-center justify-between p-3 rounded-lg mb-3"
+            style={{ backgroundColor: selectedCategory.color + '15' }}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: selectedCategory.color + '30' }}
+              >
+                {selectedCategory.icon && (
+                  <DynamicIcon
+                    name={selectedCategory.icon}
+                    className="w-4 h-4"
+                    style={{ color: selectedCategory.color }}
+                  />
+                )}
+              </div>
+              <span className="font-medium" style={{ color: selectedCategory.color }}>
+                {selectedCategory.name}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCategoryId('')}
+              className="p-1 rounded hover:bg-white/50 transition-colors"
+            >
+              <X className="w-4 h-4" style={{ color: selectedCategory.color }} />
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 mb-3 p-3 bg-gray-50 rounded-lg">
+            Brak kategorii — wybierz poniżej
+          </p>
+        )}
+
+        {/* Category grid */}
+        <div className="flex flex-wrap gap-2">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategoryId(cat.id === categoryId ? '' : cat.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all',
+                categoryId === cat.id
+                  ? 'ring-2 ring-offset-1'
+                  : 'hover:scale-105'
+              )}
+              style={{
+                backgroundColor: categoryId === cat.id ? cat.color : `${cat.color}15`,
+                color: categoryId === cat.id ? 'white' : cat.color,
+                ...(categoryId === cat.id
+                  ? { ['--tw-ring-color' as string]: cat.color }
+                  : {}),
+              }}
+            >
+              {cat.icon && (
+                <DynamicIcon
+                  name={cat.icon}
+                  className="w-4 h-4"
+                  style={{ color: categoryId === cat.id ? 'white' : cat.color }}
+                />
+              )}
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <Input
         label="Strona WWW"

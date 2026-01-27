@@ -162,6 +162,27 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
 
   const category = merchant.category || categories.find(c => c.id === merchant.category_id);
 
+  // Calculate suggested category from transactions (most frequent)
+  const suggestedCategoryId = (() => {
+    if (transactions.length === 0) return null;
+    const categoryCounts = new Map<string, number>();
+    transactions.forEach(tx => {
+      if (tx.category_id) {
+        categoryCounts.set(tx.category_id, (categoryCounts.get(tx.category_id) || 0) + 1);
+      }
+    });
+    if (categoryCounts.size === 0) return null;
+    let maxCount = 0;
+    let mostFrequentId: string | null = null;
+    categoryCounts.forEach((count, catId) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequentId = catId;
+      }
+    });
+    return mostFrequentId;
+  })();
+
   return (
     <div className="space-y-6">
       {/* Back link */}
@@ -302,6 +323,7 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
         <MerchantForm
           merchant={merchant}
           categories={categories}
+          suggestedCategoryId={suggestedCategoryId}
           onSubmit={handleUpdate}
           onCancel={() => setShowEditModal(false)}
         />

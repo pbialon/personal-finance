@@ -2,7 +2,6 @@
 
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { formatCurrency } from '@/lib/utils';
 
 interface HorizontalBarChartProps {
   data: {
@@ -13,23 +12,54 @@ interface HorizontalBarChartProps {
   color?: string;
 }
 
+function formatCompactCurrency(amount: number): string {
+  if (amount >= 1000) {
+    return `${(amount / 1000).toFixed(1).replace('.0', '')}k`;
+  }
+  return Math.round(amount).toString();
+}
+
 export function HorizontalBarChart({ data, color = '#3b82f6' }: HorizontalBarChartProps) {
+  const maxValue = Math.max(...data.map((d) => d.value));
+  const maxIndex = data.findIndex((d) => d.value === maxValue);
+
+  // Day emoji mapping for Polish day names
+  const dayEmojis: Record<string, string> = {
+    'Poniedziałek': '📅',
+    'Wtorek': '📅',
+    'Środa': '📅',
+    'Czwartek': '📅',
+    'Piątek': '🎉',
+    'Sobota': '🌴',
+    'Niedziela': '☀️',
+  };
+
   const options: Highcharts.Options = {
     chart: {
       type: 'bar',
       backgroundColor: 'transparent',
-      height: 250,
+      height: 280,
+      animation: {
+        duration: 500,
+      },
     },
     title: {
       text: undefined,
     },
     xAxis: {
-      categories: data.map((d) => d.name),
+      categories: data.map((d) => {
+        const emoji = dayEmojis[d.name] || '';
+        return `${emoji} ${d.name}`;
+      }),
       labels: {
         style: {
-          fontSize: '11px',
+          fontSize: '12px',
+          fontWeight: '500',
         },
+        useHTML: true,
       },
+      lineWidth: 0,
+      tickWidth: 0,
     },
     yAxis: {
       min: 0,
@@ -37,28 +67,49 @@ export function HorizontalBarChart({ data, color = '#3b82f6' }: HorizontalBarCha
         text: undefined,
       },
       labels: {
-        formatter: function () {
-          return formatCurrency(this.value as number);
-        },
-        style: {
-          fontSize: '11px',
-        },
+        enabled: false,
       },
+      gridLineWidth: 0,
     },
     tooltip: {
-      pointFormat: '{point.y:.0f} PLN',
+      useHTML: true,
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: 8,
+      borderWidth: 0,
+      shadow: true,
+      formatter: function () {
+        const ctx = this as unknown as { point: Highcharts.Point };
+        const point = ctx.point;
+        const dataItem = data[point.index];
+        return `
+          <div style="padding: 8px 12px;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${dataItem.name}</div>
+            <div style="font-size: 16px; color: ${color};">${point.y?.toLocaleString('pl-PL')} PLN</div>
+            ${dataItem.count ? `<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${dataItem.count} transakcji</div>` : ''}
+          </div>
+        `;
+      },
     },
     plotOptions: {
       bar: {
-        borderRadius: 4,
+        borderRadius: 6,
+        pointPadding: 0.15,
+        groupPadding: 0.1,
         dataLabels: {
           enabled: true,
           formatter: function () {
-            return formatCurrency(this.y || 0);
+            return formatCompactCurrency(this.y || 0) + ' zł';
           },
           style: {
-            fontSize: '10px',
-            fontWeight: 'normal',
+            fontSize: '11px',
+            fontWeight: '600',
+            textOutline: 'none',
+          },
+          color: '#374151',
+        },
+        states: {
+          hover: {
+            brightness: 0.1,
           },
         },
       },
@@ -69,8 +120,29 @@ export function HorizontalBarChart({ data, color = '#3b82f6' }: HorizontalBarCha
     series: [{
       type: 'bar',
       name: 'Wydatki',
-      data: data.map((d) => d.value),
-      color: color,
+      data: data.map((d, idx) => ({
+        y: d.value,
+        color: idx === maxIndex
+          ? {
+              linearGradient: { x1: 0, x2: 1, y1: 0, y2: 0 },
+              stops: [
+                [0, '#f59e0b'],
+                [1, '#fbbf24'],
+              ] as [number, string][],
+            }
+          : {
+              linearGradient: { x1: 0, x2: 1, y1: 0, y2: 0 },
+              stops: [
+                [0, color],
+                [1, Highcharts.color(color).brighten(0.2).get() as string],
+              ] as [number, string][],
+            },
+        borderColor: idx === maxIndex ? '#f59e0b' : undefined,
+        borderWidth: idx === maxIndex ? 2 : 0,
+      })),
+      animation: {
+        duration: 800,
+      },
     }],
     credits: {
       enabled: false,
