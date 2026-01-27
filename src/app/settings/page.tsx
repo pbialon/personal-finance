@@ -454,26 +454,6 @@ function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Informacje</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-gray-600">
-          <p>
-            <strong>Enable Banking</strong> - Europejski agregator PSD2 zapewniający
-            bezpieczny dostęp do danych bankowych.
-          </p>
-          <p>
-            <strong>Zgoda PSD2</strong> - Ważna maksymalnie 90 dni. Po wygaśnięciu
-            konieczna jest ponowna autoryzacja.
-          </p>
-          <p>
-            <strong>Automatyczna synchronizacja</strong> - Transakcje są pobierane
-            automatycznie raz dziennie.
-          </p>
-        </CardContent>
-      </Card>
-
       <Card className="border-red-200">
         <CardHeader>
           <CardTitle className="text-red-600 flex items-center gap-2">
