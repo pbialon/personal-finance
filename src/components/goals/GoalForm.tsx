@@ -27,7 +27,7 @@ export function GoalForm({ goal, onSubmit, onCancel }: GoalFormProps) {
   const [name, setName] = useState(goal?.name || '');
   const [targetAmount, setTargetAmount] = useState(goal?.target_amount?.toString() || '');
   const [currentAmount, setCurrentAmount] = useState(goal?.current_amount?.toString() || '0');
-  const [deadline, setDeadline] = useState(goal?.deadline || '');
+  const [deadline, setDeadline] = useState(goal?.deadline?.slice(0, 7) || '');
   const [icon, setIcon] = useState(goal?.icon || '🎯');
   const [color, setColor] = useState(goal?.color || '#3b82f6');
   const [loading, setLoading] = useState(false);
@@ -65,7 +65,7 @@ export function GoalForm({ goal, onSubmit, onCancel }: GoalFormProps) {
         name: name.trim(),
         target_amount: parseFloat(targetAmount),
         current_amount: parseFloat(currentAmount) || 0,
-        deadline: deadline || null,
+        deadline: deadline ? `${deadline}-01` : null,
         icon: icon || null,
         color,
       });
@@ -113,8 +113,8 @@ export function GoalForm({ goal, onSubmit, onCancel }: GoalFormProps) {
 
       <Input
         id="deadline"
-        label="Deadline (opcjonalnie)"
-        type="date"
+        label="Termin realizacji (opcjonalnie)"
+        type="month"
         value={deadline}
         onChange={(e) => setDeadline(e.target.value)}
       />
