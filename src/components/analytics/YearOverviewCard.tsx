@@ -30,7 +30,20 @@ function StatCard({ label, value, change }: { label: string; value: number; chan
 export function YearOverviewCard({ range }: YearOverviewCardProps) {
   const { data, loading, error } = useYearOverview(range.startDate, range.endDate);
 
-  if (loading) {
+  if (error && !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Podsumowanie roczne</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500">Nie udało się załadować danych</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading && !data) {
     return (
       <Card>
         <CardHeader>
@@ -43,18 +56,7 @@ export function YearOverviewCard({ range }: YearOverviewCardProps) {
     );
   }
 
-  if (error || !data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Podsumowanie roczne</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500">Nie udało się załadować danych</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!data) return null;
 
   const chartSeries = [
     {
@@ -72,9 +74,12 @@ export function YearOverviewCard({ range }: YearOverviewCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Podsumowanie roczne</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Podsumowanie roczne
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Przychody"

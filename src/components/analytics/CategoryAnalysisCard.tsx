@@ -8,7 +8,7 @@ import { TreemapChart } from '@/components/charts/TreemapChart';
 import { useCategoryAnalysis } from '@/hooks/useAnalytics';
 import { useCategories } from '@/hooks/useCategories';
 import { Loader2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import type { TimePeriodRange } from '@/types';
 
 interface CategoryAnalysisCardProps {
@@ -51,7 +51,27 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
     );
   }
 
-  if (loading) {
+  if (error && !data) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Analiza kategorii</CardTitle>
+          <div className="w-64">
+            <Select
+              options={categoryOptions}
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500">Nie udało się załadować danych</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading && !data) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -71,25 +91,7 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
     );
   }
 
-  if (error || !data) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Analiza kategorii</CardTitle>
-          <div className="w-64">
-            <Select
-              options={categoryOptions}
-              value={selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value)}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500">Nie udało się załadować danych</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!data) return null;
 
   const trendSeries = [
     {
@@ -110,7 +112,10 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Analiza kategorii</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Analiza kategorii
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
         <div className="w-64">
           <Select
             options={categoryOptions}
@@ -119,7 +124,7 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
           />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Suma</p>

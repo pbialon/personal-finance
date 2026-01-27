@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { PieChart } from '@/components/charts/PieChart';
 import { useTopSpenders } from '@/hooks/useAnalytics';
 import { Loader2 } from 'lucide-react';
-import { formatCurrency, formatShortDate } from '@/lib/utils';
+import { formatCurrency, formatShortDate, cn } from '@/lib/utils';
 import type { TimePeriodRange } from '@/types';
 
 interface TopSpendersCardProps {
@@ -14,20 +14,7 @@ interface TopSpendersCardProps {
 export function TopSpendersCard({ range }: TopSpendersCardProps) {
   const { data, loading, error } = useTopSpenders(range.startDate, range.endDate);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Największe wydatki</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !data) {
+  if (error && !data) {
     return (
       <Card>
         <CardHeader>
@@ -40,6 +27,21 @@ export function TopSpendersCard({ range }: TopSpendersCardProps) {
     );
   }
 
+  if (loading && !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Największe wydatki</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
   const pieData = [
     { name: 'Cykliczne', y: data.recurringVsOneTime.recurring, color: '#3b82f6' },
     { name: 'Jednorazowe', y: data.recurringVsOneTime.oneTime, color: '#9ca3af' },
@@ -48,9 +50,12 @@ export function TopSpendersCard({ range }: TopSpendersCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Największe wydatki</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Największe wydatki
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-4">Top 10 kontrahentów</h4>

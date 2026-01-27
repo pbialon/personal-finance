@@ -71,20 +71,7 @@ function ComponentRow({
 export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
   const { data, loading, error } = useFinancialHealth(range.startDate, range.endDate);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Kondycja finansowa</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !data) {
+  if (error && !data) {
     return (
       <Card>
         <CardHeader>
@@ -97,15 +84,33 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
     );
   }
 
+  if (loading && !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Kondycja finansowa</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
   const scoreColor = getScoreColor(data.score);
   const scoreLabel = getScoreLabel(data.score);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Kondycja finansowa</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Kondycja finansowa
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="flex flex-col items-center mb-6">
           <GaugeChart value={data.score} max={100} color={scoreColor} />
           <div className="mt-2 text-center">

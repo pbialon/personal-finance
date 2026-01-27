@@ -337,7 +337,7 @@ export async function GET(request: NextRequest) {
         .eq('is_ignored', false),
       supabase
         .from('categories')
-        .select('id, name, color')
+        .select('id, name, color, icon')
         .eq('is_savings', false),
       supabase
         .from('categories')
@@ -347,7 +347,7 @@ export async function GET(request: NextRequest) {
 
     const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
     const transactions = (transactionsRes.data || []).filter(t => !savingsIds.has(t.category_id));
-    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c]));
+    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c as { id: string; name: string; color: string; icon: string | null }]));
 
     const DAYS_PL = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
     const byDayOfWeek: { day: string; amount: number; count: number }[] = DAYS_PL.map((day) => ({
@@ -361,7 +361,7 @@ export async function GET(request: NextRequest) {
       amount: 0,
     }));
 
-    const categoryHeatmapData: Map<string, { color: string; days: number[] }> = new Map();
+    const categoryHeatmapData: Map<string, { name: string; color: string; icon: string | null; days: number[] }> = new Map();
 
     transactions.forEach((t) => {
       const date = new Date(t.transaction_date + 'T00:00:00');
@@ -375,10 +375,10 @@ export async function GET(request: NextRequest) {
       if (t.category_id) {
         const cat = categoriesMap.get(t.category_id);
         if (cat) {
-          if (!categoryHeatmapData.has(cat.name)) {
-            categoryHeatmapData.set(cat.name, { color: cat.color, days: [0, 0, 0, 0, 0, 0, 0] });
+          if (!categoryHeatmapData.has(t.category_id)) {
+            categoryHeatmapData.set(t.category_id, { name: cat.name, color: cat.color, icon: cat.icon, days: [0, 0, 0, 0, 0, 0, 0] });
           }
-          categoryHeatmapData.get(cat.name)!.days[dayOfWeek] += t.amount;
+          categoryHeatmapData.get(t.category_id)!.days[dayOfWeek] += t.amount;
         }
       }
     });
@@ -386,10 +386,11 @@ export async function GET(request: NextRequest) {
     // Reorder days to start from Monday
     const reorderedDays = [...byDayOfWeek.slice(1), byDayOfWeek[0]];
 
-    const categoryHeatmap = Array.from(categoryHeatmapData.entries())
-      .map(([category, data]) => ({
-        category,
+    const categoryHeatmap = Array.from(categoryHeatmapData.values())
+      .map((data) => ({
+        category: data.name,
         color: data.color,
+        icon: data.icon,
         days: [...data.days.slice(1), data.days[0]], // Monday first
       }))
       .sort((a, b) => b.days.reduce((s, v) => s + v, 0) - a.days.reduce((s, v) => s + v, 0))

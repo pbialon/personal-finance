@@ -190,21 +190,49 @@ export function useBudgetProgress(month?: string) {
   return { progress, loading, error, refresh };
 }
 
+// Extended cache for date-range analytics
+const rangeCache = {
+  financialHealth: new Map<string, FinancialHealthScore>(),
+  spendingPatterns: new Map<string, SpendingPatterns>(),
+  categoryAnalysis: new Map<string, CategoryAnalysis>(),
+  topSpenders: new Map<string, TopSpenders>(),
+  yearOverview: new Map<string, YearOverview>(),
+};
+
 // Clear all analytics cache (useful after data changes)
 export function clearAnalyticsCache() {
   cache.stats.clear();
   cache.spending.clear();
   cache.trends.clear();
   cache.progress.clear();
+  rangeCache.financialHealth.clear();
+  rangeCache.spendingPatterns.clear();
+  rangeCache.categoryAnalysis.clear();
+  rangeCache.topSpenders.clear();
+  rangeCache.yearOverview.clear();
 }
 
-// New analytics hooks (without caching for now as they're less frequently used)
+function getRangeKey(startDate: string, endDate: string, extra?: string): string {
+  return `${startDate}_${endDate}${extra ? `_${extra}` : ''}`;
+}
+
 export function useFinancialHealth(startDate: string, endDate: string) {
-  const [data, setData] = useState<FinancialHealthScore | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getRangeKey(startDate, endDate);
+  const cached = rangeCache.financialHealth.get(cacheKey);
+
+  const [data, setData] = useState<FinancialHealthScore | null>(cached || null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    const key = getRangeKey(startDate, endDate);
+
+    if (!forceRefresh && rangeCache.financialHealth.has(key)) {
+      setData(rangeCache.financialHealth.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -217,6 +245,7 @@ export function useFinancialHealth(startDate: string, endDate: string) {
       if (!response.ok) throw new Error('Failed to fetch financial health');
 
       const result = await response.json();
+      rangeCache.financialHealth.set(key, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -229,15 +258,28 @@ export function useFinancialHealth(startDate: string, endDate: string) {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
 }
 
 export function useSpendingPatterns(startDate: string, endDate: string) {
-  const [data, setData] = useState<SpendingPatterns | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getRangeKey(startDate, endDate);
+  const cached = rangeCache.spendingPatterns.get(cacheKey);
+
+  const [data, setData] = useState<SpendingPatterns | null>(cached || null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    const key = getRangeKey(startDate, endDate);
+
+    if (!forceRefresh && rangeCache.spendingPatterns.has(key)) {
+      setData(rangeCache.spendingPatterns.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -250,6 +292,7 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
       if (!response.ok) throw new Error('Failed to fetch spending patterns');
 
       const result = await response.json();
+      rangeCache.spendingPatterns.set(key, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -262,17 +305,30 @@ export function useSpendingPatterns(startDate: string, endDate: string) {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
 }
 
 export function useCategoryAnalysis(startDate: string, endDate: string, categoryId?: string) {
-  const [data, setData] = useState<CategoryAnalysis | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getRangeKey(startDate, endDate, categoryId);
+  const cached = categoryId ? rangeCache.categoryAnalysis.get(cacheKey) : null;
+
+  const [data, setData] = useState<CategoryAnalysis | null>(cached || null);
+  const [loading, setLoading] = useState(categoryId ? !cached : false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
     if (!categoryId) {
       setData(null);
+      setLoading(false);
+      return;
+    }
+
+    const key = getRangeKey(startDate, endDate, categoryId);
+
+    if (!forceRefresh && rangeCache.categoryAnalysis.has(key)) {
+      setData(rangeCache.categoryAnalysis.get(key)!);
       setLoading(false);
       return;
     }
@@ -290,6 +346,7 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
       if (!response.ok) throw new Error('Failed to fetch category analysis');
 
       const result = await response.json();
+      rangeCache.categoryAnalysis.set(key, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -302,15 +359,28 @@ export function useCategoryAnalysis(startDate: string, endDate: string, category
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
 }
 
 export function useTopSpenders(startDate: string, endDate: string) {
-  const [data, setData] = useState<TopSpenders | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getRangeKey(startDate, endDate);
+  const cached = rangeCache.topSpenders.get(cacheKey);
+
+  const [data, setData] = useState<TopSpenders | null>(cached || null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    const key = getRangeKey(startDate, endDate);
+
+    if (!forceRefresh && rangeCache.topSpenders.has(key)) {
+      setData(rangeCache.topSpenders.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -323,6 +393,7 @@ export function useTopSpenders(startDate: string, endDate: string) {
       if (!response.ok) throw new Error('Failed to fetch top spenders');
 
       const result = await response.json();
+      rangeCache.topSpenders.set(key, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -335,15 +406,28 @@ export function useTopSpenders(startDate: string, endDate: string) {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
 }
 
 export function useYearOverview(startDate: string, endDate: string) {
-  const [data, setData] = useState<YearOverview | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = getRangeKey(startDate, endDate);
+  const cached = rangeCache.yearOverview.get(cacheKey);
+
+  const [data, setData] = useState<YearOverview | null>(cached || null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    const key = getRangeKey(startDate, endDate);
+
+    if (!forceRefresh && rangeCache.yearOverview.has(key)) {
+      setData(rangeCache.yearOverview.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -356,6 +440,7 @@ export function useYearOverview(startDate: string, endDate: string) {
       if (!response.ok) throw new Error('Failed to fetch year overview');
 
       const result = await response.json();
+      rangeCache.yearOverview.set(key, result);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -368,5 +453,7 @@ export function useYearOverview(startDate: string, endDate: string) {
     fetchData();
   }, [fetchData]);
 
-  return { data, loading, error, refresh: fetchData };
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
 }

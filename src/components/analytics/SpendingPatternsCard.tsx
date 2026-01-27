@@ -6,6 +6,7 @@ import { AreaChart } from '@/components/charts/AreaChart';
 import { HeatmapChart } from '@/components/charts/HeatmapChart';
 import { useSpendingPatterns } from '@/hooks/useAnalytics';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { TimePeriodRange } from '@/types';
 
 interface SpendingPatternsCardProps {
@@ -15,20 +16,7 @@ interface SpendingPatternsCardProps {
 export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
   const { data, loading, error } = useSpendingPatterns(range.startDate, range.endDate);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Wzorce wydatków</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !data) {
+  if (error && !data) {
     return (
       <Card>
         <CardHeader>
@@ -41,12 +29,30 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
     );
   }
 
+  if (loading && !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wzorce wydatków</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Wzorce wydatków</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          Wzorce wydatków
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-4">Wydatki wg dnia tygodnia</h4>
