@@ -75,6 +75,7 @@ React Components → Custom Hooks (fetch) → API Routes (/api/*) → Supabase
 ## Workflow Rules
 
 - **Commit after changes:** After each significant change (new feature, bugfix, refactor), propose a commit. Don't wait for the user to ask.
+- **Push after commit:** Always push changes to remote after committing. Don't just commit locally.
 - **Small commits:** Prefer frequent, small commits over rare, large ones.
 - **Test before commit:** Run `npm run build` before committing to verify the code compiles.
 
