@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+
 const ENABLE_BANKING_API_URL = 'https://api.enablebanking.com';
 
 interface EnableBankingConfig {
@@ -50,35 +52,43 @@ interface TransactionsResponse {
 
 function getConfig(): EnableBankingConfig {
   const applicationId = process.env.ENABLE_BANKING_APPLICATION_ID;
-  const privateKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
+  let privateKey = process.env.ENABLE_BANKING_PRIVATE_KEY;
 
   if (!applicationId || !privateKey) {
     throw new Error('Enable Banking credentials not configured');
   }
 
+  // Handle escaped newlines from .env file
+  privateKey = privateKey.replace(/\\n/g, '\n');
+
   return { applicationId, privateKey };
 }
 
-async function getAccessToken(): Promise<string> {
+function createJWT(): string {
   const config = getConfig();
+  const now = Math.floor(Date.now() / 1000);
 
-  const response = await fetch(`${ENABLE_BANKING_API_URL}/auth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const payload = {
+    iss: 'enablebanking.com',
+    aud: 'api.enablebanking.com',
+    iat: now,
+    exp: now + 3600, // 1 hour expiration
+    sub: config.applicationId,
+  };
+
+  return jwt.sign(payload, config.privateKey, {
+    algorithm: 'RS256',
+    header: {
+      alg: 'RS256',
+      typ: 'JWT',
+      kid: config.applicationId,
     },
-    body: JSON.stringify({
-      application_id: config.applicationId,
-      private_key: config.privateKey,
-    }),
   });
+}
 
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
+function getAccessToken(): string {
+  // Enable Banking uses JWT directly as the Bearer token
+  return createJWT();
 }
 
 export async function getAuthorizationUrl(
@@ -86,7 +96,7 @@ export async function getAuthorizationUrl(
   redirectUri: string,
   state: string
 ): Promise<string> {
-  const accessToken = await getAccessToken();
+  const accessToken = getAccessToken();
 
   const response = await fetch(`${ENABLE_BANKING_API_URL}/auth`, {
     method: 'POST',
@@ -103,7 +113,7 @@ export async function getAuthorizationUrl(
       redirect_url: redirectUri,
       psu_type: 'personal',
       access: {
-        valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       },
     }),
   });
@@ -118,7 +128,7 @@ export async function getAuthorizationUrl(
 }
 
 export async function createSession(authCode: string): Promise<Session> {
-  const accessToken = await getAccessToken();
+  const accessToken = getAccessToken();
 
   const response = await fetch(`${ENABLE_BANKING_API_URL}/sessions`, {
     method: 'POST',
@@ -140,7 +150,7 @@ export async function createSession(authCode: string): Promise<Session> {
 }
 
 export async function getAccounts(sessionId: string): Promise<Account[]> {
-  const accessToken = await getAccessToken();
+  const accessToken = getAccessToken();
 
   const response = await fetch(`${ENABLE_BANKING_API_URL}/sessions/${sessionId}/accounts`, {
     headers: {
@@ -162,7 +172,7 @@ export async function getTransactions(
   dateFrom?: string,
   dateTo?: string
 ): Promise<Transaction[]> {
-  const accessToken = await getAccessToken();
+  const accessToken = getAccessToken();
 
   const params = new URLSearchParams();
   if (dateFrom) params.append('date_from', dateFrom);
@@ -187,7 +197,7 @@ export async function getTransactions(
 }
 
 export async function refreshSession(sessionId: string): Promise<boolean> {
-  const accessToken = await getAccessToken();
+  const accessToken = getAccessToken();
 
   const response = await fetch(`${ENABLE_BANKING_API_URL}/sessions/${sessionId}/refresh`, {
     method: 'POST',
