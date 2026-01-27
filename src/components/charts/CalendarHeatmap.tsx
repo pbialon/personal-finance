@@ -146,7 +146,7 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
 
                 {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                  {cell.day}.{String(month + 1).padStart(2, '0')} — {formatCurrency(cell.amount)}
+                  {formatCurrency(cell.amount)}
                 </div>
               </div>
             );
