@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard, Trash2, AlertTriangle } from 'lucide-react';
+import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard, Trash2, AlertTriangle, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +15,46 @@ function formatIban(iban: string): string {
   // Remove all spaces and format as groups of 4
   const clean = iban.replace(/\s/g, '');
   return clean.match(/.{1,4}/g)?.join(' ') || clean;
+}
+
+function validateIban(iban: string): { valid: boolean; error?: string } {
+  const clean = iban.replace(/\s/g, '').toUpperCase();
+
+  if (!clean) return { valid: false };
+
+  // Check if starts with PL
+  if (!clean.startsWith('PL')) {
+    return { valid: false, error: 'IBAN musi zaczynać się od PL' };
+  }
+
+  // Check length (PL + 26 digits = 28)
+  if (clean.length !== 28) {
+    return { valid: false, error: `Nieprawidłowa długość (${clean.length}/28)` };
+  }
+
+  // Check if rest is digits
+  if (!/^PL\d{26}$/.test(clean)) {
+    return { valid: false, error: 'IBAN może zawierać tylko cyfry po PL' };
+  }
+
+  // MOD 97 validation
+  // Move first 4 chars to end, convert letters to numbers (A=10, B=11, etc.)
+  const rearranged = clean.slice(4) + clean.slice(0, 4);
+  const numericStr = rearranged.replace(/[A-Z]/g, (char) =>
+    (char.charCodeAt(0) - 55).toString()
+  );
+
+  // Calculate mod 97 (handle big numbers by processing in chunks)
+  let remainder = 0;
+  for (let i = 0; i < numericStr.length; i++) {
+    remainder = (remainder * 10 + parseInt(numericStr[i])) % 97;
+  }
+
+  if (remainder !== 1) {
+    return { valid: false, error: 'Nieprawidłowa suma kontrolna' };
+  }
+
+  return { valid: true };
 }
 
 const INGIcon = () => (
@@ -49,6 +89,11 @@ function SettingsContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  const ibanValidation = useMemo(() => {
+    if (!newIban.trim()) return null;
+    return validateIban(newIban);
+  }, [newIban]);
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -177,7 +222,7 @@ function SettingsContent() {
 
   const handleAddIban = () => {
     const trimmed = newIban.trim().toUpperCase().replace(/\s/g, '');
-    if (!trimmed) return;
+    if (!trimmed || !ibanValidation?.valid) return;
     if (ignoredIbans.includes(trimmed)) {
       setMessage({ type: 'error', text: 'Ten IBAN jest już na liście' });
       return;
@@ -408,21 +453,42 @@ function SettingsContent() {
             Dodaj IBAN-y swoich innych kont ING.
           </p>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="PL00 0000 0000 0000 0000 0000 0000"
-              value={newIban}
-              onChange={(e) => setNewIban(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddIban()}
-              className="flex-1 font-mono text-sm"
-            />
-            <Button
-              variant="secondary"
-              onClick={handleAddIban}
-              disabled={!newIban.trim() || savingIbans}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="PL00 0000 0000 0000 0000 0000 0000"
+                  value={newIban}
+                  onChange={(e) => setNewIban(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddIban()}
+                  className={cn(
+                    'font-mono text-sm pr-10',
+                    ibanValidation && (ibanValidation.valid
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : 'border-red-400 focus:border-red-400 focus:ring-red-400')
+                  )}
+                />
+                {ibanValidation && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {ibanValidation.valid ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-400" />
+                    )}
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="secondary"
+                onClick={handleAddIban}
+                disabled={!newIban.trim() || !ibanValidation?.valid || savingIbans}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {ibanValidation && !ibanValidation.valid && ibanValidation.error && (
+              <p className="text-xs text-red-500">{ibanValidation.error}</p>
+            )}
           </div>
 
           {ignoredIbans.length > 0 ? (
@@ -488,19 +554,15 @@ function SettingsContent() {
           setDeleteConfirmText('');
         }}
         title="Usuń wszystkie transakcje"
-        size="sm"
+        size="md"
       >
         <div className="space-y-4">
           <div className="p-4 bg-red-50 rounded-lg border border-red-200">
             <div className="flex gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-red-900">Uwaga!</p>
-                <p className="text-sm text-red-700 mt-1">
-                  Ta akcja usunie wszystkie transakcje z bazy danych. Operacja jest nieodwracalna.
-                  Kategorie, budżety i kontrahenci pozostaną zachowani.
-                </p>
-              </div>
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+              <p className="text-sm text-red-700">
+                Ta akcja jest <strong>nieodwracalna</strong>. Kategorie, budżety i kontrahenci pozostaną zachowani.
+              </p>
             </div>
           </div>
 
