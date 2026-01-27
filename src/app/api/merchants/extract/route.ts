@@ -38,17 +38,40 @@ Existing merchants in database: ${existingMerchants.length > 0 ? existingMerchan
 Available categories:
 ${categoriesPrompt}
 
-Rules:
-1. If this matches an existing merchant, return that exact name
-2. If it's a new merchant, return a clean, standardized name (e.g., "LIDL FORT SLUZEW WARSZAWA" → "Lidl")
-3. Common Polish merchants: Biedronka, Lidl, Żabka, Orlen, BP, Circle K, Wolt, Glovo, Uber Eats, Netflix, Spotify, Canal+, HBO, Amazon, Allegro, etc.
-4. Return null if this is a personal transfer (to a person), not a business
-5. Select the most appropriate category for this merchant based on their business type
+CRITICAL RULES:
+1. ALWAYS extract just the BRAND NAME - remove locations, cities, transaction IDs, terminal numbers
+   Examples:
+   - "WOLT WARSAW POL" → "wolt"
+   - "Wolt Poland POL" → "wolt"
+   - "Wolt Warszawa POL" → "wolt"
+   - "LIDL FORT SLUZEW WARSZAWA" → "lidl"
+   - "BIEDRONKA 1234 KRAKOW" → "biedronka"
+   - "UBER *EATS HELP.UBER.COM" → "uber eats"
+   - "BOLT OPERATIONS OU" → "bolt"
+   - "ALLEGRO SP. Z O.O." → "allegro"
+
+2. If an existing merchant name matches the brand (ignoring case), return that EXACT existing name
+3. Return null for personal transfers (person names, IBAN transfers to individuals)
+4. Select the most appropriate category based on merchant type
+
+Common brands to normalize:
+- All Wolt variations → "wolt"
+- All Lidl variations → "lidl"
+- All Biedronka variations → "biedronka"
+- All Żabka variations → "żabka"
+- All Bolt variations → "bolt"
+- All Uber/Uber Eats variations → "uber eats" or "uber"
+- All Glovo variations → "glovo"
+- All Orlen variations → "orlen"
+- All Netflix variations → "netflix"
+- All Spotify variations → "spotify"
+- All Allegro variations → "allegro"
+- All Amazon variations → "amazon"
 
 Respond in JSON format:
 {
-  "merchant_name": "string or null",
-  "display_name": "string (nice formatted name)",
+  "merchant_name": "string or null (lowercase brand name only!)",
+  "display_name": "string (nicely capitalized brand name)",
   "website": "string or null (domain without https://)",
   "category_id": "uuid of the best matching category or null",
   "is_existing": boolean,
