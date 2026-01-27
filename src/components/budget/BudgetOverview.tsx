@@ -51,7 +51,7 @@ export function BudgetOverview({
                   style={{ backgroundColor: `${category?.color || '#6b7280'}20` }}
                 >
                   <DynamicIcon
-                    name={category?.icon || null}
+                    name={category?.icon || (budget.is_income ? 'wallet' : 'circle-dot')}
                     className="w-5 h-5"
                     style={{ color: category?.color || '#6b7280' }}
                   />

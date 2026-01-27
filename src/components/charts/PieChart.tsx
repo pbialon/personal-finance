@@ -13,11 +13,14 @@ interface PieChartProps {
 }
 
 export function PieChart({ data, title }: PieChartProps) {
+  // Filter out zero values for cleaner display
+  const filteredData = data.filter(d => d.y > 0);
+
   const options: Highcharts.Options = {
     chart: {
       type: 'pie',
       backgroundColor: 'transparent',
-      height: 300,
+      height: 280,
     },
     title: {
       text: title || undefined,
@@ -27,20 +30,34 @@ export function PieChart({ data, title }: PieChartProps) {
       },
     },
     tooltip: {
-      pointFormat: '<b>{point.name}</b><br/>{point.y:.2f} PLN ({point.percentage:.1f}%)',
+      backgroundColor: 'white',
+      borderWidth: 0,
+      borderRadius: 8,
+      shadow: true,
+      style: {
+        fontSize: '13px',
+      },
+      pointFormat: '<b>{point.name}</b><br/>{point.y:,.2f} zł ({point.percentage:.1f}%)',
     },
     plotOptions: {
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
         dataLabels: {
-          enabled: true,
-          format: '<b>{point.name}</b>: {point.percentage:.1f}%',
-          style: {
-            fontSize: '11px',
-          },
+          enabled: false,
         },
         showInLegend: true,
+        states: {
+          hover: {
+            brightness: 0.1,
+            halo: {
+              size: 5,
+            },
+          },
+          inactive: {
+            opacity: 0.5,
+          },
+        },
       },
     },
     legend: {
@@ -48,14 +65,14 @@ export function PieChart({ data, title }: PieChartProps) {
       verticalAlign: 'bottom',
       layout: 'horizontal',
       itemStyle: {
-        fontSize: '11px',
+        fontSize: '12px',
       },
     },
     series: [
       {
         type: 'pie',
         name: 'Wydatki',
-        data: data,
+        data: filteredData,
       },
     ],
     credits: {
