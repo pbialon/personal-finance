@@ -42,9 +42,9 @@ export function HorizontalBarChart({ data, color = '#3b82f6' }: HorizontalBarCha
             </span>
 
             {/* Bar */}
-            <div className="flex-1 h-7 bg-gray-100 rounded-md overflow-hidden relative group">
+            <div className="flex-1 h-7 bg-gray-100 rounded-md relative group cursor-pointer">
               <div
-                className="h-full rounded-md transition-all duration-300 ease-out group-hover:scale-y-110 group-hover:shadow-md"
+                className="h-full rounded-md transition-all duration-200 ease-out group-hover:brightness-110 group-hover:saturate-150"
                 style={{
                   width: `${Math.max(percentage, 3)}%`,
                   background: isMax
