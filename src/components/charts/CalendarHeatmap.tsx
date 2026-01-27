@@ -77,28 +77,29 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
   };
 
   return (
-    <div className="space-y-4">
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1.5">
-        {/* Day headers */}
+    <div className="space-y-3">
+      {/* Day headers */}
+      <div className="flex gap-1.5">
         {DAYS_SHORT.map((day, idx) => (
           <div
             key={day}
             className={cn(
-              'h-8 flex items-center justify-center text-xs font-medium',
+              'w-12 h-6 flex items-center justify-center text-xs font-medium',
               idx >= 5 ? 'text-gray-400' : 'text-gray-500'
             )}
           >
             {day}
           </div>
         ))}
+      </div>
 
-        {/* Calendar cells */}
-        {weeks.flatMap((week, weekIdx) =>
-          week.map((cell, dayIdx) => {
+      {/* Weeks */}
+      {weeks.map((week, weekIdx) => (
+        <div key={weekIdx} className="flex gap-1.5">
+          {week.map((cell, dayIdx) => {
             if (!cell) {
               return (
-                <div key={`${weekIdx}-${dayIdx}`} className="aspect-square rounded-lg bg-transparent" />
+                <div key={dayIdx} className="w-12 h-12 rounded-lg bg-transparent" />
               );
             }
 
@@ -107,9 +108,9 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
 
             return (
               <div
-                key={`${weekIdx}-${dayIdx}`}
+                key={dayIdx}
                 className={cn(
-                  'aspect-square rounded-lg flex flex-col items-center justify-center',
+                  'w-12 h-12 rounded-lg flex flex-col items-center justify-center',
                   'transition-all duration-200 hover:scale-105 hover:shadow-md cursor-default',
                   'relative group'
                 )}
@@ -123,7 +124,7 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
                 </span>
                 {cell.amount > 0 && (
                   <span className={cn(
-                    'text-[10px]',
+                    'text-[9px]',
                     intensity > 0.5 ? 'text-white/80' : 'text-gray-500'
                   )}>
                     {formatCompact(cell.amount)}
@@ -136,15 +137,15 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ))}
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+      <div className="flex items-center gap-2 text-xs text-gray-500 pt-2">
         <span>Mniej</span>
         <div
-          className="w-28 h-3 rounded-full"
+          className="w-24 h-2.5 rounded-full"
           style={{
             background: `linear-gradient(to right, #f3f4f6, ${color})`,
           }}
