@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { categorizeNewTransaction } from '@/lib/categorization';
+import { findOrCreateMerchant } from '@/lib/merchants';
 
 interface ParsedTransaction {
   transaction_date: string;
@@ -50,14 +51,16 @@ function parseINGCsv(content: string): ParsedTransaction[] {
     const bankName = parts[5] || null;
     const transactionId = parts[7]?.replace(/'/g, '').trim() || null;
 
-    // Amount can be in column 8 (with currency in 9) or column 11 (with currency in 12)
+    // Amount can be in column 8 (with currency in 9) or column 10 (with currency in 11)
+    // Column 8 = "Kwota transakcji" (main transaction amount)
+    // Column 10 = "Kwota blokady/zwolnienie blokady" (blocking amount for pending transactions)
     let amountStr = parts[8];
     let currency = parts[9] || 'PLN';
 
-    // If amount is empty, try column 11 (for card transactions)
-    if (!amountStr && parts[11]) {
-      amountStr = parts[11];
-      currency = parts[12] || 'PLN';
+    // If amount is empty, try column 10 (for pending card/BLIK transactions)
+    if (!amountStr && parts[10]) {
+      amountStr = parts[10];
+      currency = parts[11] || 'PLN';
     }
 
     if (!amountStr) continue;
@@ -158,6 +161,11 @@ export async function POST(request: NextRequest) {
           displayName = categorization.display_name;
         }
 
+        const merchantId = await findOrCreateMerchant(
+          tx.counterparty_name || tx.description,
+          tx.counterparty_name || tx.description
+        );
+
         await supabase.from('transactions').insert({
           external_id: externalId,
           bank_account_id: tx.account_name,
@@ -171,6 +179,7 @@ export async function POST(request: NextRequest) {
           counterparty_account: tx.account_number,
           category_id: categoryId,
           category_source: categorySource,
+          merchant_id: merchantId,
           is_income: tx.is_income,
           is_manual: false,
         });
