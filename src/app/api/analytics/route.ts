@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
         date: m,
         start: getFirstDayOfMonth(m),
         end: getLastDayOfMonth(m),
-        label: m.toLocaleDateString('pl-PL', { month: 'short' }),
+        label: m.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }),
       });
     }
 
