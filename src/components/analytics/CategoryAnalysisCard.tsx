@@ -252,9 +252,9 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
                           {formatCurrency(merchant.amount)} ({percentage.toFixed(1)}%)
                         </span>
                       </div>
-                      <div className="h-5 bg-gray-100 rounded overflow-hidden">
+                      <div className="h-5 bg-gray-100 rounded relative cursor-pointer">
                         <div
-                          className="h-full rounded transition-all duration-300"
+                          className="h-full rounded transition-all duration-200 group-hover:brightness-110 group-hover:saturate-150"
                           style={{
                             width: `${barWidth}%`,
                             backgroundColor: data.categoryColor,
