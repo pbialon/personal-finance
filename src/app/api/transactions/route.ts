@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('transactions')
-    .select('*, category:categories(*)', { count: 'exact' })
+    .select('*, category:categories(*), merchant:merchants(*)', { count: 'exact' })
     .order('transaction_date', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       is_manual: true,
       is_income: body.is_income || false,
     })
-    .select('*, category:categories(*)')
+    .select('*, category:categories(*), merchant:merchants(*)')
     .single();
 
   if (error) {
@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest) {
     .from('transactions')
     .update(updateData)
     .eq('id', body.id)
-    .select('*, category:categories(*)')
+    .select('*, category:categories(*), merchant:merchants(*)')
     .single();
 
   if (error) {
