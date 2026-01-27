@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
   const monthParam = searchParams.get('month');
 
-  const month = monthParam ? new Date(monthParam) : new Date();
+  // Parse as local time (not UTC) by adding T00:00:00
+  const month = monthParam ? new Date(monthParam + 'T00:00:00') : new Date();
   const startDate = getFirstDayOfMonth(month);
   const endDate = getLastDayOfMonth(month);
 
