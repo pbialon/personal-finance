@@ -4,17 +4,29 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI();
 
+interface CategoryInfo {
+  id: string;
+  name: string;
+  ai_prompt: string | null;
+}
+
 interface ExtractedMerchant {
   name: string;
   display_name: string;
   website?: string;
+  category_id?: string;
 }
 
 async function extractMerchantFromTransaction(
   counterpartyName: string,
   description: string,
-  existingMerchants: string[]
-): Promise<{ merchant_name: string | null; is_new: boolean; confidence: number; display_name?: string; website?: string }> {
+  existingMerchants: string[],
+  categories: CategoryInfo[]
+): Promise<{ merchant_name: string | null; is_new: boolean; confidence: number; display_name?: string; website?: string; category_id?: string }> {
+  const categoriesPrompt = categories
+    .map(c => `- ${c.name} (ID: ${c.id}): ${c.ai_prompt || 'Brak opisu'}`)
+    .join('\n');
+
   const prompt = `Analyze this transaction and identify the merchant/recipient.
 
 Transaction info:
@@ -23,17 +35,22 @@ Transaction info:
 
 Existing merchants in database: ${existingMerchants.length > 0 ? existingMerchants.join(', ') : 'none'}
 
+Available categories:
+${categoriesPrompt}
+
 Rules:
 1. If this matches an existing merchant, return that exact name
 2. If it's a new merchant, return a clean, standardized name (e.g., "LIDL FORT SLUZEW WARSZAWA" → "Lidl")
 3. Common Polish merchants: Biedronka, Lidl, Żabka, Orlen, BP, Circle K, Wolt, Glovo, Uber Eats, Netflix, Spotify, Canal+, HBO, Amazon, Allegro, etc.
 4. Return null if this is a personal transfer (to a person), not a business
+5. Select the most appropriate category for this merchant based on their business type
 
 Respond in JSON format:
 {
   "merchant_name": "string or null",
   "display_name": "string (nice formatted name)",
   "website": "string or null (domain without https://)",
+  "category_id": "uuid of the best matching category or null",
   "is_existing": boolean,
   "confidence": number (0-1)
 }`;
@@ -88,6 +105,14 @@ export async function POST(request: NextRequest) {
     const merchantNames = existingMerchants?.map((m) => m.name) || [];
     const merchantMap = new Map(existingMerchants?.map((m) => [m.name, m.id]) || []);
 
+    // Get categories for AI suggestion
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('id, name, ai_prompt')
+      .order('name');
+
+    const categoryList: CategoryInfo[] = categories || [];
+
     // Get transactions without merchant_id
     const { data: transactions } = await supabase
       .from('transactions')
@@ -114,7 +139,8 @@ export async function POST(request: NextRequest) {
         const result = await extractMerchantFromTransaction(
           tx.counterparty_name || '',
           tx.raw_description || tx.display_name || '',
-          merchantNames
+          merchantNames,
+          categoryList
         );
 
         if (!result.merchant_name || result.confidence < 0.5) {
@@ -127,6 +153,11 @@ export async function POST(request: NextRequest) {
           // Create new merchant
           const iconUrl = await fetchMerchantIcon(result.website);
 
+          // Validate category_id exists
+          const validCategoryId = result.category_id && categoryList.some(c => c.id === result.category_id)
+            ? result.category_id
+            : null;
+
           const { data: newMerchant, error: insertError } = await supabase
             .from('merchants')
             .insert({
@@ -134,6 +165,7 @@ export async function POST(request: NextRequest) {
               display_name: result.display_name || result.merchant_name,
               icon_url: iconUrl,
               website: result.website,
+              category_id: validCategoryId,
             })
             .select()
             .single();
