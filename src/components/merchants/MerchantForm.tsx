@@ -11,7 +11,6 @@ import type { Merchant, Category } from '@/types';
 interface MerchantFormProps {
   merchant: Merchant;
   categories: Category[];
-  suggestedCategoryId?: string | null;
   onSubmit: (data: {
     display_name: string;
     icon_url: string | null;
@@ -21,12 +20,11 @@ interface MerchantFormProps {
   onCancel: () => void;
 }
 
-export function MerchantForm({ merchant, categories, suggestedCategoryId, onSubmit, onCancel }: MerchantFormProps) {
+export function MerchantForm({ merchant, categories, onSubmit, onCancel }: MerchantFormProps) {
   const [loading, setLoading] = useState(false);
   const [displayName, setDisplayName] = useState(merchant.display_name);
   const [iconUrl, setIconUrl] = useState(merchant.icon_url || '');
-  // Use merchant's category, or suggested category if merchant has no category
-  const [categoryId, setCategoryId] = useState(merchant.category_id || suggestedCategoryId || '');
+  const [categoryId, setCategoryId] = useState(merchant.category_id || '');
   const [website, setWebsite] = useState(merchant.website || '');
 
   const handleSubmit = async (e: React.FormEvent) => {

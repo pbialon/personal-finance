@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Store, Pencil, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, Store, Pencil, Trash2, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -162,8 +162,9 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
 
   const category = merchant.category || categories.find(c => c.id === merchant.category_id);
 
-  // Calculate suggested category from transactions (most frequent)
-  const suggestedCategoryId = (() => {
+  // Calculate suggested category from transactions (most frequent) - only if merchant has no category
+  const suggestedCategory = (() => {
+    if (merchant.category_id) return null; // Already has category
     if (transactions.length === 0) return null;
     const categoryCounts = new Map<string, number>();
     transactions.forEach(tx => {
@@ -180,8 +181,25 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
         mostFrequentId = catId;
       }
     });
-    return mostFrequentId;
+    return mostFrequentId ? categories.find(c => c.id === mostFrequentId) : null;
   })();
+
+  const handleSetSuggestedCategory = async () => {
+    if (!suggestedCategory) return;
+    try {
+      const response = await fetch('/api/merchants', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, category_id: suggestedCategory.id }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setMerchant(updated);
+      }
+    } catch (error) {
+      console.error('Failed to set category:', error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -231,7 +249,7 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
                 {merchant.name}
               </p>
             )}
-            {category && (
+            {category ? (
               <div
                 className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium mt-2"
                 style={{
@@ -244,6 +262,18 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
                 )}
                 {category.name}
               </div>
+            ) : suggestedCategory && (
+              <button
+                onClick={handleSetSuggestedCategory}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium mt-2 border-2 border-dashed transition-all hover:scale-105"
+                style={{
+                  borderColor: suggestedCategory.color,
+                  color: suggestedCategory.color,
+                }}
+              >
+                <Sparkles className="w-3 h-3" />
+                Ustaw: {suggestedCategory.name}
+              </button>
             )}
             {merchant.website && (
               <a
@@ -323,7 +353,6 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
         <MerchantForm
           merchant={merchant}
           categories={categories}
-          suggestedCategoryId={suggestedCategoryId}
           onSubmit={handleUpdate}
           onCancel={() => setShowEditModal(false)}
         />
