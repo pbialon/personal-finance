@@ -10,6 +10,7 @@ interface UseTransactionsResult {
   count: number;
   refresh: () => void;
   updateCategory: (transactionId: string, categoryId: string) => Promise<void>;
+  updateDescription: (transactionId: string, description: string) => Promise<void>;
   addTransaction: (data: {
     amount: number;
     description: string;
@@ -71,6 +72,21 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     );
   };
 
+  const updateDescription = async (transactionId: string, description: string) => {
+    const response = await fetch('/api/transactions', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: transactionId, description }),
+    });
+
+    if (!response.ok) throw new Error('Failed to update description');
+
+    const updated = await response.json();
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === transactionId ? updated : t))
+    );
+  };
+
   const addTransaction = async (data: {
     amount: number;
     description: string;
@@ -109,6 +125,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     count,
     refresh: fetchTransactions,
     updateCategory,
+    updateDescription,
     addTransaction,
     deleteTransaction,
   };

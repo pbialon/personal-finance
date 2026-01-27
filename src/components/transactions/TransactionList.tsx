@@ -13,6 +13,7 @@ interface TransactionListProps {
   categories: Category[];
   loading?: boolean;
   onCategoryChange: (transactionId: string, categoryId: string) => void;
+  onDescriptionChange?: (transactionId: string, description: string) => void;
   onDelete?: (transactionId: string) => void;
 }
 
@@ -21,6 +22,7 @@ export function TransactionList({
   categories,
   loading,
   onCategoryChange,
+  onDescriptionChange,
   onDelete,
 }: TransactionListProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -64,6 +66,17 @@ export function TransactionList({
     }
   };
 
+  const handleDescriptionChange = (transactionId: string, description: string) => {
+    onDescriptionChange?.(transactionId, description);
+    // Update selected transaction if it's the one being modified
+    if (selectedTransaction?.id === transactionId) {
+      setSelectedTransaction({
+        ...selectedTransaction,
+        description,
+      });
+    }
+  };
+
   return (
     <>
       <Card className="overflow-hidden">
@@ -82,6 +95,7 @@ export function TransactionList({
         categories={categories}
         onClose={() => setSelectedTransaction(null)}
         onCategoryChange={handleCategoryChange}
+        onDescriptionChange={handleDescriptionChange}
         onDelete={onDelete}
       />
     </>

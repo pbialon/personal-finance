@@ -15,7 +15,7 @@ export default function TransactionsPage() {
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const { transactions, loading, count, updateCategory, addTransaction, deleteTransaction } = useTransactions(filters);
+  const { transactions, loading, count, updateCategory, updateDescription, addTransaction, deleteTransaction } = useTransactions(filters);
   const { categories } = useCategories();
 
   const handleCategoryChange = async (transactionId: string, categoryId: string) => {
@@ -31,6 +31,14 @@ export default function TransactionsPage() {
       await deleteTransaction(transactionId);
     } catch (error) {
       console.error('Failed to delete transaction:', error);
+    }
+  };
+
+  const handleDescriptionChange = async (transactionId: string, description: string) => {
+    try {
+      await updateDescription(transactionId, description);
+    } catch (error) {
+      console.error('Failed to update description:', error);
     }
   };
 
@@ -75,6 +83,7 @@ export default function TransactionsPage() {
         categories={categories}
         loading={loading}
         onCategoryChange={handleCategoryChange}
+        onDescriptionChange={handleDescriptionChange}
         onDelete={handleDelete}
       />
 

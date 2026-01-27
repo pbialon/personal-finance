@@ -70,6 +70,18 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
         >
           {displayName}
         </p>
+        {transaction.description && (
+          <p
+            className={cn(
+              'text-sm truncate',
+              transaction.is_ignored ? 'text-gray-300' : 'text-gray-500'
+            )}
+          >
+            {transaction.description.length > 60
+              ? transaction.description.slice(0, 60) + '...'
+              : transaction.description}
+          </p>
+        )}
         <div className="flex items-center gap-2 mt-1">
           <CategoryBadge category={category} size="sm" showIcon={false} />
         </div>

@@ -14,6 +14,7 @@ interface CategorizationOutput {
   category_id: string;
   category_source: 'ai' | 'rule';
   display_name: string;
+  description: string;
   confidence?: number;
 }
 
@@ -34,6 +35,7 @@ export async function categorizeNewTransaction(
         category_id: rule.category_id,
         category_source: 'rule',
         display_name: input.counterparty_name || input.raw_description.slice(0, 50),
+        description: input.counterparty_name || input.raw_description.slice(0, 200),
       };
     }
   }
@@ -66,6 +68,7 @@ export async function categorizeNewTransaction(
     category_id: result.category_id,
     category_source: 'ai',
     display_name: result.display_name,
+    description: result.description,
     confidence: result.confidence,
   };
 }

@@ -83,6 +83,13 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
                     <p className="text-base font-semibold text-gray-900 truncate">
                       {displayName}
                     </p>
+                    {transaction.description && (
+                      <p className="text-sm text-gray-500 truncate">
+                        {transaction.description.length > 60
+                          ? transaction.description.slice(0, 60) + '...'
+                          : transaction.description}
+                      </p>
+                    )}
                     <div className="mt-1">
                       <CategoryBadge category={category} size="sm" showIcon={false} />
                     </div>

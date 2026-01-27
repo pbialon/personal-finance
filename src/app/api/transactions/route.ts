@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const categoryId = searchParams.get('categoryId');
+  const merchantId = searchParams.get('merchantId');
   const isIncome = searchParams.get('isIncome');
   const isIgnored = searchParams.get('isIgnored');
   const search = searchParams.get('search');
@@ -33,6 +34,10 @@ export async function GET(request: NextRequest) {
     query = query.eq('category_id', categoryId);
   }
 
+  if (merchantId) {
+    query = query.eq('merchant_id', merchantId);
+  }
+
   if (isIncome !== null) {
     query = query.eq('is_income', isIncome === 'true');
   }
@@ -42,7 +47,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (search) {
-    query = query.or(`raw_description.ilike.%${search}%,display_name.ilike.%${search}%,counterparty_name.ilike.%${search}%`);
+    query = query.or(`raw_description.ilike.%${search}%,display_name.ilike.%${search}%,counterparty_name.ilike.%${search}%,description.ilike.%${search}%`);
   }
 
   const { data, error, count } = await query;
@@ -63,6 +68,7 @@ export async function POST(request: NextRequest) {
     .insert({
       raw_description: body.description,
       display_name: body.description,
+      description: body.description,
       amount: body.amount,
       currency: body.currency || 'PLN',
       transaction_date: body.transaction_date,
@@ -103,6 +109,10 @@ export async function PUT(request: NextRequest) {
 
   if (body.display_name !== undefined) {
     updateData.display_name = body.display_name;
+  }
+
+  if (body.description !== undefined) {
+    updateData.description = body.description;
   }
 
   const { data, error } = await supabase

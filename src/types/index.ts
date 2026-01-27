@@ -30,6 +30,7 @@ export interface Transaction {
   transaction_date: string;
   booking_date: string | null;
   display_name: string | null;
+  description: string | null;
   counterparty_account: string | null;
   counterparty_name: string | null;
   category_id: string | null;

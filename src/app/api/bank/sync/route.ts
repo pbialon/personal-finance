@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getTransactions, mapTransaction } from '@/lib/enable-banking';
 import { categorizeNewTransaction } from '@/lib/categorization';
 import { findOrCreateMerchant } from '@/lib/merchants';
+import { getIgnoredIbans, isInternalTransfer } from '@/lib/settings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +38,21 @@ export async function POST(request: NextRequest) {
       dateTo
     );
 
+    // Get list of own IBANs to filter internal transfers
+    const ignoredIbans = await getIgnoredIbans();
+
     let imported = 0;
     let skipped = 0;
+    let filteredInternal = 0;
 
     for (const tx of bankTransactions) {
       const mapped = mapTransaction(tx, connection.account_id!);
+
+      // Skip internal transfers between own accounts
+      if (isInternalTransfer(mapped.counterparty_account, ignoredIbans)) {
+        filteredInternal++;
+        continue;
+      }
 
       const { data: existing } = await supabase
         .from('transactions')
@@ -70,6 +81,7 @@ export async function POST(request: NextRequest) {
       await supabase.from('transactions').insert({
         ...mapped,
         display_name: categorization.display_name,
+        description: categorization.description,
         category_id: categorization.category_id,
         category_source: categorization.category_source,
         merchant_id: merchantId,
@@ -87,6 +99,7 @@ export async function POST(request: NextRequest) {
       success: true,
       imported,
       skipped,
+      filteredInternal,
       total: bankTransactions.length,
     });
   } catch (error) {

@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
             category_id: categorization.category_id,
             category_source: categorization.category_source,
             display_name: categorization.display_name,
+            description: categorization.description,
           })
           .eq('id', tx.id);
 

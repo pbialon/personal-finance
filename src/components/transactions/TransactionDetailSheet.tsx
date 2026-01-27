@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Store, Pencil, Trash2, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { X, Store, Trash2, ChevronRight, ExternalLink, Pencil, Check } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ interface TransactionDetailSheetProps {
   categories: Category[];
   onClose: () => void;
   onCategoryChange: (transactionId: string, categoryId: string) => void;
+  onDescriptionChange?: (transactionId: string, description: string) => void;
   onDelete?: (transactionId: string) => void;
 }
 
@@ -20,10 +22,13 @@ export function TransactionDetailSheet({
   categories,
   onClose,
   onCategoryChange,
+  onDescriptionChange,
   onDelete,
 }: TransactionDetailSheetProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
 
   if (!transaction) return null;
 
@@ -46,6 +51,23 @@ export function TransactionDetailSheet({
       onDelete(transaction.id);
       onClose();
     }
+  };
+
+  const handleStartEditDescription = () => {
+    setEditedDescription(transaction.description || '');
+    setIsEditingDescription(true);
+  };
+
+  const handleSaveDescription = () => {
+    if (onDescriptionChange) {
+      onDescriptionChange(transaction.id, editedDescription);
+    }
+    setIsEditingDescription(false);
+  };
+
+  const handleCancelEditDescription = () => {
+    setIsEditingDescription(false);
+    setEditedDescription('');
   };
 
   return (
@@ -116,27 +138,92 @@ export function TransactionDetailSheet({
           </p>
         </div>
 
-        {/* Details */}
+        {/* Description - editable AI-generated */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Opis transakcji
+            </p>
+            {!isEditingDescription && onDescriptionChange && (
+              <button
+                onClick={handleStartEditDescription}
+                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              >
+                <Pencil className="w-3 h-3" />
+                Edytuj
+              </button>
+            )}
+          </div>
+          {isEditingDescription ? (
+            <div className="space-y-2">
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+                maxLength={200}
+                placeholder="Dodaj opis transakcji..."
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">
+                  {editedDescription.length}/200
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelEditDescription}
+                    className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800"
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={handleSaveDescription}
+                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3" />
+                    Zapisz
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-900">
+              {transaction.description || 'Brak opisu'}
+            </p>
+          )}
+        </div>
+
+        {/* Details - raw description and counterparty */}
         {(transaction.raw_description || transaction.counterparty_name) && (
           <div className="px-6 py-4 border-b border-gray-100">
             {transaction.raw_description && (
               <div className="mb-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                  Opis
+                  Opis bankowy
                 </p>
                 <p className="text-sm text-gray-900">
                   {transaction.raw_description}
                 </p>
               </div>
             )}
-            {transaction.counterparty_name && (
+            {(transaction.counterparty_name || merchant) && (
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                   Kontrahent
                 </p>
-                <p className="text-sm text-gray-900">
-                  {transaction.counterparty_name}
-                </p>
+                {merchant ? (
+                  <Link
+                    href={`/merchants/${merchant.id}`}
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                    onClick={onClose}
+                  >
+                    {transaction.counterparty_name || merchant.display_name}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-900">
+                    {transaction.counterparty_name}
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -16,6 +16,7 @@ interface CategorizationResult {
   category_id: string;
   confidence: number;
   display_name: string;
+  description: string;
 }
 
 export async function categorizeTransaction(
@@ -46,7 +47,8 @@ Odpowiedz TYLKO w formacie JSON (bez żadnego tekstu przed lub po):
 {
   "category_id": "uuid kategorii",
   "confidence": 0.0-1.0,
-  "display_name": "Czytelna, krótka nazwa transakcji (max 50 znaków)"
+  "display_name": "Czytelna, krótka nazwa transakcji (max 50 znaków)",
+  "description": "Zwięzły opis transakcji po polsku, np. 'Zakupy spożywcze w Biedronce' lub 'Przelew za wynajem mieszkania' (max 200 znaków)"
 }`;
 
   const response = await openai.chat.completions.create({
@@ -89,6 +91,7 @@ Odpowiedz TYLKO w formacie JSON (bez żadnego tekstu przed lub po):
       category_id: otherCategory?.id || categories[0].id,
       confidence: 0.3,
       display_name: rawDescription.slice(0, 50),
+      description: rawDescription.slice(0, 200),
     };
   }
 }
