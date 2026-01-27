@@ -58,21 +58,32 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
     return Math.max(0.2, Math.min(1, amount / maxAmount));
   };
 
+  // Convert hex to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 59, g: 130, b: 246 };
+  };
+
   const getColorStyle = (amount: number, dayOfWeek: number) => {
     const isWeekend = dayOfWeek >= 5;
 
     if (amount === 0) {
       return {
-        backgroundColor: isWeekend ? '#f3f4f6' : '#f9fafb',
-        color: '#9ca3af',
+        backgroundColor: isWeekend ? '#e5e7eb' : '#f3f4f6',
       };
     }
 
     const intensity = getIntensity(amount);
+    const rgb = hexToRgb(color);
+    // Blend with white based on intensity (lower intensity = more white)
+    const blend = (c: number) => Math.round(255 - (255 - c) * intensity);
+
     return {
-      backgroundColor: color,
-      opacity: intensity,
-      color: intensity > 0.5 ? 'white' : '#374151',
+      backgroundColor: `rgb(${blend(rgb.r)}, ${blend(rgb.g)}, ${blend(rgb.b)})`,
     };
   };
 
@@ -106,6 +117,8 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
             const colorStyle = getColorStyle(cell.amount, dayIdx);
             const intensity = getIntensity(cell.amount);
 
+            const textDark = cell.amount === 0 || intensity < 0.6;
+
             return (
               <div
                 key={dayIdx}
@@ -118,14 +131,14 @@ export function CalendarHeatmap({ data, month, year, color = '#3b82f6' }: Calend
               >
                 <span className={cn(
                   'text-sm font-semibold',
-                  cell.amount > 0 && intensity > 0.5 ? 'text-white' : 'text-gray-600'
+                  textDark ? 'text-gray-700' : 'text-white'
                 )}>
                   {cell.day}
                 </span>
                 {cell.amount > 0 && (
                   <span className={cn(
                     'text-[9px]',
-                    intensity > 0.5 ? 'text-white/80' : 'text-gray-500'
+                    textDark ? 'text-gray-500' : 'text-white/90'
                   )}>
                     {formatCompact(cell.amount)}
                   </span>

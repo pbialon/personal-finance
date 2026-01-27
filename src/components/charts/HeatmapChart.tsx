@@ -15,12 +15,32 @@ interface HeatmapChartProps {
 
 const DAYS = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
 
+// Convert hex to RGB
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 128, g: 128, b: 128 };
+};
+
 export function HeatmapChart({ data }: HeatmapChartProps) {
   const maxValue = Math.max(...data.flatMap(d => d.days));
 
-  const getOpacity = (value: number) => {
-    if (maxValue === 0) return 0.15;
-    return Math.max(0.15, Math.min(1, value / maxValue));
+  const getIntensity = (value: number) => {
+    if (maxValue === 0 || value === 0) return 0;
+    return Math.max(0.2, Math.min(1, value / maxValue));
+  };
+
+  const getBackgroundColor = (value: number, color: string) => {
+    if (value === 0) return '#f3f4f6';
+
+    const intensity = getIntensity(value);
+    const rgb = hexToRgb(color);
+    const blend = (c: number) => Math.round(255 - (255 - c) * intensity);
+
+    return `rgb(${blend(rgb.r)}, ${blend(rgb.g)}, ${blend(rgb.b)})`;
   };
 
   if (data.length === 0) {
@@ -80,22 +100,34 @@ export function HeatmapChart({ data }: HeatmapChartProps) {
           {/* Grid rows */}
           {data.map((row) => (
             <div key={row.category} className="flex gap-1 mb-1">
-              {row.days.map((value, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    'w-12 h-8 rounded-md flex items-center justify-center text-[10px] font-semibold transition-all hover:scale-105 cursor-default',
-                    value === 0 ? 'bg-gray-100' : 'text-white'
-                  )}
-                  style={{
-                    backgroundColor: value > 0 ? row.color : undefined,
-                    opacity: value > 0 ? getOpacity(value) : 1,
-                  }}
-                  title={`${row.category} - ${DAYS[idx]}: ${formatCurrency(value)}`}
-                >
-                  {value > 0 && (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : Math.round(value))}
-                </div>
-              ))}
+              {row.days.map((value, idx) => {
+                const intensity = getIntensity(value);
+                const textDark = value === 0 || intensity < 0.6;
+
+                return (
+                  <div
+                    key={idx}
+                    className={cn(
+                      'w-12 h-8 rounded-md flex items-center justify-center text-[10px] font-semibold',
+                      'transition-all hover:scale-105 cursor-default relative group'
+                    )}
+                    style={{
+                      backgroundColor: getBackgroundColor(value, row.color),
+                    }}
+                  >
+                    <span className={textDark ? 'text-gray-600' : 'text-white'}>
+                      {value > 0 && (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : Math.round(value))}
+                    </span>
+
+                    {/* Tooltip */}
+                    {value > 0 && (
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                        {formatCurrency(value)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>

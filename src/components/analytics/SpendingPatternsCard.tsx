@@ -92,7 +92,7 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
         {/* Charts row */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Wydatki wg dnia tygodnia */}
-          <div className="bg-gray-50/50 rounded-xl p-5">
+          <div className="bg-gray-50/50 rounded-xl p-5 flex flex-col">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Wydatki wg dnia tygodnia</h4>
             <HorizontalBarChart
               data={data.byDayOfWeek.map((d) => ({
@@ -104,8 +104,8 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
           </div>
 
           {/* Kalendarz wydatków */}
-          <div className="bg-gray-50/50 rounded-xl p-5">
-            <h4 className="text-sm font-medium text-gray-700 mb-4">Kalendarz wydatków</h4>
+          <div className="bg-gray-50/50 rounded-xl p-5 flex flex-col items-center">
+            <h4 className="text-sm font-medium text-gray-700 mb-4 self-start">Kalendarz wydatków</h4>
             <CalendarHeatmap
               data={data.byDayOfMonth}
               month={month}
@@ -114,8 +114,8 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
           </div>
 
           {/* Heatmapa kategorii */}
-          <div className="bg-gray-50/50 rounded-xl p-5 md:col-span-2 xl:col-span-1">
-            <h4 className="text-sm font-medium text-gray-700 mb-4">Heatmapa kategorii</h4>
+          <div className="bg-gray-50/50 rounded-xl p-5 md:col-span-2 xl:col-span-1 flex flex-col items-center">
+            <h4 className="text-sm font-medium text-gray-700 mb-4 self-start">Heatmapa kategorii</h4>
             <HeatmapChart data={data.categoryHeatmap} />
           </div>
         </div>
