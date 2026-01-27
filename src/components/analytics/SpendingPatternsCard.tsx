@@ -60,27 +60,27 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
       <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         {/* Stats summary */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-4 border border-slate-200/60">
-            <div className="absolute -right-2 -top-2 text-slate-200">
-              <Wallet className="h-16 w-16" />
+          <div className="relative rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-4 border border-slate-200/60">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300/80">
+              <Wallet className="h-10 w-10" />
             </div>
             <div className="relative">
               <div className="text-xs font-medium text-slate-500 mb-1">Suma wydatków</div>
               <div className="text-2xl font-bold text-slate-900">{formatCurrency(data.totalAmount)}</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border border-blue-200/60">
-            <div className="absolute -right-2 -top-2 text-blue-200">
-              <TrendingUp className="h-16 w-16" />
+          <div className="relative rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 border border-blue-200/60">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-300/80">
+              <TrendingUp className="h-10 w-10" />
             </div>
             <div className="relative">
               <div className="text-xs font-medium text-blue-600 mb-1">Średnia dzienna</div>
               <div className="text-2xl font-bold text-blue-900">{formatCurrency(data.averageDaily)}</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 border border-emerald-200/60">
-            <div className="absolute -right-2 -top-2 text-emerald-200">
-              <CalendarDays className="h-16 w-16" />
+          <div className="relative rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 border border-emerald-200/60">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-300/80">
+              <CalendarDays className="h-10 w-10" />
             </div>
             <div className="relative">
               <div className="text-xs font-medium text-emerald-600 mb-1">Dni z wydatkami</div>
