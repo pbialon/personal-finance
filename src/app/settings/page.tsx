@@ -61,6 +61,25 @@ const INGIcon = () => (
   <img src="/banks/ing.svg" alt="ING" className="w-10 h-10 rounded-lg" />
 );
 
+// Polish bank codes (first 4 digits after check digits in IBAN)
+const BANK_CODES: Record<string, { name: string; color: string; logo?: string }> = {
+  '1050': { name: 'ING Bank Śląski', color: '#FF6200', logo: '/banks/ing.svg' },
+  '1020': { name: 'PKO Bank Polski', color: '#004B87' },
+  '1140': { name: 'mBank', color: '#D71920' },
+  '1090': { name: 'Santander', color: '#EC0000' },
+  '1240': { name: 'Bank Pekao', color: '#C8102E' },
+  '2490': { name: 'Alior Bank', color: '#E4002B' },
+  '1160': { name: 'Bank Millennium', color: '#6B2C91' },
+  '1600': { name: 'BNP Paribas', color: '#00915A' },
+};
+
+function getBankFromIban(iban: string): { name: string; color: string; logo?: string } | null {
+  const clean = iban.replace(/\s/g, '').toUpperCase();
+  if (clean.length < 8) return null;
+  const bankCode = clean.substring(4, 8);
+  return BANK_CODES[bankCode] || null;
+}
+
 const SUPPORTED_BANKS = [
   { id: 'ING', name: 'ING Bank Śląski', enabled: true, color: '#FF6200', icon: INGIcon },
   { id: 'PKO', name: 'PKO Bank Polski', enabled: false, color: '#004B87' },
@@ -493,13 +512,27 @@ function SettingsContent() {
 
           {ignoredIbans.length > 0 ? (
             <div className="space-y-2">
-              {ignoredIbans.map((iban) => (
+              {ignoredIbans.map((iban) => {
+                const bank = getBankFromIban(iban);
+                return (
                 <div
                   key={iban}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    {bank?.logo ? (
+                      <img src={bank.logo} alt={bank.name} className="w-6 h-6 rounded" />
+                    ) : bank ? (
+                      <div
+                        className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold"
+                        style={{ backgroundColor: bank.color }}
+                        title={bank.name}
+                      >
+                        {bank.name.charAt(0)}
+                      </div>
+                    ) : (
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                    )}
                     <span className="font-mono text-sm">{formatIban(iban)}</span>
                   </div>
                   <button
@@ -510,7 +543,8 @@ function SettingsContent() {
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-gray-400 italic">
