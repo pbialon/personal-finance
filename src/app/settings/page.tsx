@@ -11,12 +11,7 @@ import type { BankConnection } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
 
 const INGIcon = () => (
-  <svg viewBox="0 0 40 40" className="w-10 h-10">
-    <rect width="40" height="40" rx="8" fill="#FF6200" />
-    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" fontFamily="Arial, sans-serif">
-      ING
-    </text>
-  </svg>
+  <img src="/banks/ing.svg" alt="ING" className="w-10 h-10 rounded-lg" />
 );
 
 const SUPPORTED_BANKS = [
@@ -179,7 +174,7 @@ function SettingsContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {(() => {
-                    const bank = SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name);
+                    const bank = SUPPORTED_BANKS.find(b => connection.aspsp_name?.includes(b.id));
                     const IconComponent = bank?.icon;
                     return IconComponent ? (
                       <IconComponent />
@@ -193,7 +188,7 @@ function SettingsContent() {
                     );
                   })()}
                   <div>
-                    <p className="font-medium">{SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name)?.name || connection.aspsp_name || 'Bank'}</p>
+                    <p className="font-medium">{connection.aspsp_name || 'Bank'}</p>
                     <p className="text-sm text-gray-500">
                       Ostatnia synchronizacja:{' '}
                       {connection.last_sync_at
