@@ -36,11 +36,13 @@ export function formatMonthYear(date: string | Date): string {
 }
 
 export function getFirstDayOfMonth(date: Date = new Date()): string {
-  return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+  const d = new Date(date.getFullYear(), date.getMonth(), 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
 export function getLastDayOfMonth(date: Date = new Date()): string {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+  const d = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function addMonths(date: Date, months: number): Date {
