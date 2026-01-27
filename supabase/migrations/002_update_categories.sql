@@ -9,6 +9,7 @@ INSERT INTO categories (name, color, icon, ai_prompt, is_savings) VALUES
   ('Mieszkanie', '#f59e0b', 'home', 'Czynsz, rachunki za prąd, gaz, wodę, internet, opłaty administracyjne, ubezpieczenie mieszkania', false),
   ('Rozrywka', '#ec4899', 'gamepad-2', 'Kino, koncerty, gry, streaming, hobby, wyjścia ze znajomymi, imprezy', false),
   ('Zdrowie', '#ef4444', 'heart-pulse', 'Leki, wizyty lekarskie, ubezpieczenia zdrowotne, siłownia, suplementy, badania', false),
+  ('Uroda', '#e879f9', 'sparkles', 'Kosmetyki, fryzjer, manicure, salon piękności, perfumy, pielęgnacja, spa, zabiegi kosmetyczne', false),
   ('Zakupy', '#8b5cf6', 'shopping-bag', 'Ubrania, elektronika, AGD, zakupy online, wyposażenie domu, meble', false),
   ('Subskrypcje', '#06b6d4', 'repeat', 'Netflix, Spotify, Adobe, YouTube Premium, cykliczne płatności, abonamenty', false),
   ('Edukacja', '#a855f7', 'book-open', 'Kursy, książki, szkolenia, konferencje, Udemy, Coursera', false),
