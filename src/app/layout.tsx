@@ -5,6 +5,8 @@ import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MainContent } from "@/components/layout/MainContent";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { ImportProvider } from "@/components/import/ImportContext";
+import { ImportProgressPanel } from "@/components/import/ImportProgressModal";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -24,11 +26,14 @@ export default function RootLayout({
   return (
     <html lang="pl">
       <body className={`${inter.variable} antialiased`}>
-        <SidebarProvider>
-          <Sidebar />
-          <MainContent>{children}</MainContent>
-          <MobileNav />
-        </SidebarProvider>
+        <ImportProvider>
+          <SidebarProvider>
+            <Sidebar />
+            <MainContent>{children}</MainContent>
+            <MobileNav />
+          </SidebarProvider>
+          <ImportProgressPanel />
+        </ImportProvider>
       </body>
     </html>
   );

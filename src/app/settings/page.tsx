@@ -8,9 +8,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
-import type { BankConnection, ImportProgressEvent } from '@/types';
+import type { BankConnection } from '@/types';
 import { formatDateTime, cn } from '@/lib/utils';
-import { ImportProgressModal } from '@/components/import/ImportProgressModal';
+import { useImport } from '@/components/import/ImportContext';
 
 function formatIban(iban: string): string {
   // Remove all spaces and format as groups of 4
@@ -101,7 +101,6 @@ function SettingsContent() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showBankModal, setShowBankModal] = useState(false);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ignoredIbans, setIgnoredIbans] = useState<string[]>([]);
   const [newIban, setNewIban] = useState('');
@@ -109,9 +108,7 @@ function SettingsContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importProgress, setImportProgress] = useState<ImportProgressEvent | null>(null);
-  const [importComplete, setImportComplete] = useState(false);
+  const { startImport, isImporting } = useImport();
 
   const ibanValidation = useMemo(() => {
     if (!newIban.trim()) return null;
@@ -262,76 +259,11 @@ function SettingsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImporting(true);
     setMessage(null);
-    setImportProgress(null);
-    setImportComplete(false);
-    setShowImportModal(true);
+    startImport(file);
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/import/csv', {
-        method: 'POST',
-        body: formData,
-      });
-
-      // Check if response is SSE stream or JSON error
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
-        const data = await response.json();
-        setMessage({ type: 'error', text: data.error || 'Błąd importu' });
-        setShowImportModal(false);
-        return;
-      }
-
-      // Read SSE stream
-      const reader = response.body?.getReader();
-      if (!reader) {
-        setMessage({ type: 'error', text: 'Błąd podczas odczytu strumienia' });
-        setShowImportModal(false);
-        return;
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const event = JSON.parse(line.slice(6)) as ImportProgressEvent;
-              setImportProgress(event);
-
-              if (event.type === 'complete') {
-                setImportComplete(true);
-                setMessage({
-                  type: 'success',
-                  text: `Zaimportowano ${event.imported} transakcji (pominięto ${event.skipped} duplikatów)`,
-                });
-              }
-            } catch {
-              // Ignore parse errors
-            }
-          }
-        }
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Błąd podczas importu pliku CSV' });
-      setShowImportModal(false);
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -496,10 +428,10 @@ function SettingsContent() {
           <Button
             variant="secondary"
             onClick={() => fileInputRef.current?.click()}
-            loading={importing}
+            disabled={isImporting}
           >
             <Upload className="h-4 w-4 mr-2" />
-            {importing ? 'Importowanie...' : 'Wybierz plik CSV'}
+            Wybierz plik CSV
           </Button>
           <p className="text-xs text-gray-400">
             Obsługiwany format: ING Bank Śląski (separacja średnikiem, kodowanie Windows-1250)
@@ -730,13 +662,6 @@ function SettingsContent() {
           </div>
         </div>
       </Modal>
-
-      <ImportProgressModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        progress={importProgress}
-        isComplete={importComplete}
-      />
     </div>
   );
 }

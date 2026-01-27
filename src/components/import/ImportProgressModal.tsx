@@ -1,26 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, XCircle, MinusCircle, Loader2, X, Minimize2, Maximize2 } from 'lucide-react';
-import type { ImportProgressEvent } from '@/types';
+import { CheckCircle, XCircle, MinusCircle, Loader2, Minimize2, Maximize2 } from 'lucide-react';
+import { useImport } from './ImportContext';
 
-interface ImportProgressModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  progress: ImportProgressEvent | null;
-  isComplete: boolean;
-}
-
-export function ImportProgressModal({
-  isOpen,
-  onClose,
-  progress,
-  isComplete,
-}: ImportProgressModalProps) {
+export function ImportProgressPanel() {
+  const { isImporting, progress, isComplete, resetImport } = useImport();
   const [minimized, setMinimized] = useState(false);
 
-  if (!isOpen) return null;
+  // Auto-reset minimized state when new import starts
+  useEffect(() => {
+    if (isImporting && !progress) {
+      setMinimized(false);
+    }
+  }, [isImporting, progress]);
+
+  if (!isImporting) return null;
 
   const current = progress?.current ?? 0;
   const total = progress?.total ?? 0;
@@ -72,22 +68,13 @@ export function ImportProgressModal({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
         <h3 className="font-semibold text-gray-900">Import transakcji</h3>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setMinimized(true)}
-            className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-            title="Minimalizuj"
-          >
-            <Minimize2 className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-            title="Zamknij"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <button
+          onClick={() => setMinimized(true)}
+          className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+          title="Minimalizuj"
+        >
+          <Minimize2 className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="p-4 space-y-4">
@@ -154,9 +141,9 @@ export function ImportProgressModal({
               )}
             </div>
 
-            {/* Action button */}
+            {/* Action button - only when complete */}
             {isComplete && (
-              <Button onClick={onClose} className="w-full">
+              <Button onClick={resetImport} className="w-full">
                 Zamknij
               </Button>
             )}
