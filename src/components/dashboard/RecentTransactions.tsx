@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Store } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { formatCurrency, formatShortDate, cn } from '@/lib/utils';
+import { DynamicIcon } from '../ui/DynamicIcon';
+import { CategoryBadge } from '../ui/CategoryBadge';
+import { formatCurrency, cn } from '@/lib/utils';
 import type { Transaction, Category } from '@/types';
 
 interface RecentTransactionsProps {
@@ -33,42 +35,70 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
         ) : (
           <div className="divide-y divide-gray-100">
             {transactions.map((transaction) => {
-              const category = getCategoryById(transaction.category_id);
+              const category = transaction.category || getCategoryById(transaction.category_id);
+              const merchant = transaction.merchant;
               const amount = transaction.is_income
                 ? transaction.amount
                 : -transaction.amount;
+              const displayName =
+                merchant?.display_name ||
+                transaction.display_name ||
+                transaction.raw_description ||
+                'Brak opisu';
 
               return (
-                <div
+                <Link
                   key={transaction.id}
-                  className="flex items-center justify-between py-3 px-6 hover:bg-gray-50 transition-colors"
+                  href="/transactions"
+                  className="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium"
-                      style={{ backgroundColor: category?.color || '#6b7280' }}
-                    >
-                      {(category?.name || '?').charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {transaction.display_name || transaction.raw_description}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {category?.name || 'Bez kategorii'} •{' '}
-                        {formatShortDate(transaction.transaction_date)}
-                      </p>
+                  {/* Icon */}
+                  <div className="flex-shrink-0">
+                    {merchant?.icon_url ? (
+                      <img
+                        src={merchant.icon_url}
+                        alt={merchant.display_name}
+                        className="w-12 h-12 rounded-2xl object-contain bg-gray-100"
+                      />
+                    ) : category?.icon ? (
+                      <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                        style={{ backgroundColor: category.color + '20' }}
+                      >
+                        <DynamicIcon
+                          name={category.icon}
+                          className="w-6 h-6"
+                          style={{ color: category.color }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                        <Store className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold text-gray-900 truncate">
+                      {displayName}
+                    </p>
+                    <div className="mt-1">
+                      <CategoryBadge category={category} size="sm" showIcon={false} />
                     </div>
                   </div>
+
+                  {/* Amount */}
                   <span
                     className={cn(
-                      'text-sm font-semibold',
+                      'text-base font-bold tabular-nums flex-shrink-0',
                       amount >= 0 ? 'text-green-600' : 'text-gray-900'
                     )}
                   >
+                    {amount > 0 && '+'}
                     {formatCurrency(amount)}
                   </span>
-                </div>
+                </Link>
               );
             })}
           </div>
