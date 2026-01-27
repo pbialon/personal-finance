@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Input } from '../ui/Input';
 import { DynamicIcon } from '../ui/DynamicIcon';
+import { DateRangePicker } from '../ui/DateRangePicker';
 import type { Category, TransactionFilters } from '@/types';
 
 interface TransactionFiltersProps {
@@ -13,7 +13,7 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: TransactionFilters) => void;
 }
 
-type QuickFilter = 'today' | 'week' | 'month' | null;
+type QuickFilter = 'today' | 'week' | 'month' | 'prevMonth' | null;
 
 export function TransactionFiltersComponent({
   categories,
@@ -46,6 +46,14 @@ export function TransactionFiltersComponent({
       case 'month': {
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         return { startDate: monthStart.toISOString().split('T')[0], endDate: todayStr };
+      }
+      case 'prevMonth': {
+        const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        return {
+          startDate: `${prevMonthStart.getFullYear()}-${String(prevMonthStart.getMonth() + 1).padStart(2, '0')}-01`,
+          endDate: `${prevMonthEnd.getFullYear()}-${String(prevMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(prevMonthEnd.getDate()).padStart(2, '0')}`,
+        };
       }
       default:
         return null;
@@ -186,6 +194,17 @@ export function TransactionFiltersComponent({
         >
           Ten miesiąc
         </button>
+        <button
+          onClick={() => handleQuickFilter('prevMonth')}
+          className={cn(
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap',
+            quickFilter === 'prevMonth'
+              ? 'bg-blue-100 text-blue-700'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+        >
+          Poprzedni miesiąc
+        </button>
 
         {/* Clear filters */}
         {hasActiveFilters && (
@@ -206,27 +225,18 @@ export function TransactionFiltersComponent({
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">
               Zakres dat
             </p>
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                value={filters.startDate || ''}
-                onChange={(e) => {
-                  setQuickFilter(null);
-                  onFiltersChange({ ...filters, startDate: e.target.value || undefined });
-                }}
-                className="flex-1"
-              />
-              <span className="text-gray-400 self-center">—</span>
-              <Input
-                type="date"
-                value={filters.endDate || ''}
-                onChange={(e) => {
-                  setQuickFilter(null);
-                  onFiltersChange({ ...filters, endDate: e.target.value || undefined });
-                }}
-                className="flex-1"
-              />
-            </div>
+            <DateRangePicker
+              startDate={filters.startDate}
+              endDate={filters.endDate}
+              onStartDateChange={(date) => {
+                setQuickFilter(null);
+                onFiltersChange({ ...filters, startDate: date });
+              }}
+              onEndDateChange={(date) => {
+                setQuickFilter(null);
+                onFiltersChange({ ...filters, endDate: date });
+              }}
+            />
           </div>
 
           {/* Transaction type */}
@@ -238,23 +248,31 @@ export function TransactionFiltersComponent({
               <button
                 onClick={() => handleTypeFilter('expense')}
                 className={cn(
-                  'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                   filters.isIncome === false
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-red-500 text-white shadow-sm'
+                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
                 )}
               >
+                <span className={cn(
+                  'w-2 h-2 rounded-full',
+                  filters.isIncome === false ? 'bg-white' : 'bg-red-400'
+                )} />
                 Wydatki
               </button>
               <button
                 onClick={() => handleTypeFilter('income')}
                 className={cn(
-                  'px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
                   filters.isIncome === true
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-green-500 text-white shadow-sm'
+                    : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
                 )}
               >
+                <span className={cn(
+                  'w-2 h-2 rounded-full',
+                  filters.isIncome === true ? 'bg-white' : 'bg-green-400'
+                )} />
                 Przychody
               </button>
             </div>
