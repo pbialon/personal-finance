@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent } from '../ui/Card';
+import { DynamicIcon } from '../ui/DynamicIcon';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { Budget, Category } from '@/types';
 
@@ -46,10 +47,14 @@ export function BudgetOverview({
             <CardContent className="pt-6">
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: category?.color || '#6b7280' }}
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: `${category?.color || '#6b7280'}20` }}
                 >
-                  {(category?.name || 'Ogółem').charAt(0)}
+                  <DynamicIcon
+                    name={category?.icon || null}
+                    className="w-5 h-5"
+                    style={{ color: category?.color || '#6b7280' }}
+                  />
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">
