@@ -21,13 +21,41 @@ interface UseTransactionsResult {
   deleteTransaction: (transactionId: string) => Promise<void>;
 }
 
-export function useTransactions(filters: TransactionFilters = {}): UseTransactionsResult {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [count, setCount] = useState(0);
+// Simple cache for transactions
+const transactionsCache = new Map<string, { data: Transaction[]; count: number }>();
 
-  const fetchTransactions = useCallback(async () => {
+function getCacheKey(filters: TransactionFilters): string {
+  return JSON.stringify({
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    categoryId: filters.categoryId,
+    isIncome: filters.isIncome,
+    isIgnored: filters.isIgnored,
+    search: filters.search,
+  });
+}
+
+export function useTransactions(filters: TransactionFilters = {}): UseTransactionsResult {
+  const cacheKey = getCacheKey(filters);
+  const cached = transactionsCache.get(cacheKey);
+
+  const [transactions, setTransactions] = useState<Transaction[]>(cached?.data || []);
+  const [loading, setLoading] = useState(!cached);
+  const [error, setError] = useState<string | null>(null);
+  const [count, setCount] = useState(cached?.count || 0);
+
+  const fetchTransactions = useCallback(async (forceRefresh = false) => {
+    const key = getCacheKey(filters);
+
+    // Return cached data if available and not forcing refresh
+    if (!forceRefresh && transactionsCache.has(key)) {
+      const cached = transactionsCache.get(key)!;
+      setTransactions(cached.data);
+      setCount(cached.count);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -44,6 +72,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       if (!response.ok) throw new Error('Failed to fetch transactions');
 
       const result = await response.json();
+      transactionsCache.set(key, { data: result.data, count: result.count || result.data.length });
       setTransactions(result.data);
       setCount(result.count || result.data.length);
     } catch (err) {
@@ -56,6 +85,8 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
+
+  const refresh = useCallback(() => fetchTransactions(true), [fetchTransactions]);
 
   const updateCategory = async (transactionId: string, categoryId: string) => {
     const response = await fetch('/api/transactions', {
@@ -79,7 +110,11 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       body: JSON.stringify({ id: transactionId, description }),
     });
 
-    if (!response.ok) throw new Error('Failed to update description');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error('Update description error:', error);
+      throw new Error(error.error || 'Failed to update description');
+    }
 
     const updated = await response.json();
     setTransactions((prev) =>
@@ -123,10 +158,15 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     loading,
     error,
     count,
-    refresh: fetchTransactions,
+    refresh,
     updateCategory,
     updateDescription,
     addTransaction,
     deleteTransaction,
   };
+}
+
+// Clear transactions cache (useful after data changes)
+export function clearTransactionsCache() {
+  transactionsCache.clear();
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type {
   MonthlyStats,
   CategorySpending,
@@ -13,12 +13,30 @@ import type {
   YearOverview,
 } from '@/types';
 
+// Simple in-memory cache for analytics data
+const cache = {
+  stats: new Map<string, MonthlyStats>(),
+  spending: new Map<string, CategorySpending[]>(),
+  trends: new Map<string, MonthlyTrend[]>(),
+  progress: new Map<string, BudgetProgress[]>(),
+};
+
 export function useMonthlyStats(month?: string) {
-  const [stats, setStats] = useState<MonthlyStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = month || 'current';
+  const [stats, setStats] = useState<MonthlyStats | null>(() => cache.stats.get(cacheKey) || null);
+  const [loading, setLoading] = useState(!cache.stats.has(cacheKey));
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    // Return cached data if available and not forcing refresh
+    if (!forceRefresh && cache.stats.has(key)) {
+      setStats(cache.stats.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({ type: 'stats' });
@@ -28,6 +46,7 @@ export function useMonthlyStats(month?: string) {
       if (!response.ok) throw new Error('Failed to fetch stats');
 
       const data = await response.json();
+      cache.stats.set(key, data);
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -40,15 +59,26 @@ export function useMonthlyStats(month?: string) {
     fetchStats();
   }, [fetchStats]);
 
-  return { stats, loading, error, refresh: fetchStats };
+  const refresh = useCallback(() => fetchStats(true), [fetchStats]);
+
+  return { stats, loading, error, refresh };
 }
 
 export function useCategorySpending(month?: string) {
-  const [spending, setSpending] = useState<CategorySpending[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = month || 'current';
+  const [spending, setSpending] = useState<CategorySpending[]>(() => cache.spending.get(cacheKey) || []);
+  const [loading, setLoading] = useState(!cache.spending.has(cacheKey));
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSpending = useCallback(async () => {
+  const fetchSpending = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    if (!forceRefresh && cache.spending.has(key)) {
+      setSpending(cache.spending.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({ type: 'category-spending' });
@@ -58,6 +88,7 @@ export function useCategorySpending(month?: string) {
       if (!response.ok) throw new Error('Failed to fetch spending');
 
       const data = await response.json();
+      cache.spending.set(key, data);
       setSpending(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -70,15 +101,26 @@ export function useCategorySpending(month?: string) {
     fetchSpending();
   }, [fetchSpending]);
 
-  return { spending, loading, error, refresh: fetchSpending };
+  const refresh = useCallback(() => fetchSpending(true), [fetchSpending]);
+
+  return { spending, loading, error, refresh };
 }
 
 export function useMonthlyTrends(month?: string) {
-  const [trends, setTrends] = useState<MonthlyTrend[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = month || 'current';
+  const [trends, setTrends] = useState<MonthlyTrend[]>(() => cache.trends.get(cacheKey) || []);
+  const [loading, setLoading] = useState(!cache.trends.has(cacheKey));
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTrends = useCallback(async () => {
+  const fetchTrends = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    if (!forceRefresh && cache.trends.has(key)) {
+      setTrends(cache.trends.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({ type: 'trends' });
@@ -88,6 +130,7 @@ export function useMonthlyTrends(month?: string) {
       if (!response.ok) throw new Error('Failed to fetch trends');
 
       const data = await response.json();
+      cache.trends.set(key, data);
       setTrends(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -100,15 +143,26 @@ export function useMonthlyTrends(month?: string) {
     fetchTrends();
   }, [fetchTrends]);
 
-  return { trends, loading, error, refresh: fetchTrends };
+  const refresh = useCallback(() => fetchTrends(true), [fetchTrends]);
+
+  return { trends, loading, error, refresh };
 }
 
 export function useBudgetProgress(month?: string) {
-  const [progress, setProgress] = useState<BudgetProgress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = month || 'current';
+  const [progress, setProgress] = useState<BudgetProgress[]>(() => cache.progress.get(cacheKey) || []);
+  const [loading, setLoading] = useState(!cache.progress.has(cacheKey));
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProgress = useCallback(async () => {
+  const fetchProgress = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    if (!forceRefresh && cache.progress.has(key)) {
+      setProgress(cache.progress.get(key)!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({ type: 'budget-progress' });
@@ -118,6 +172,7 @@ export function useBudgetProgress(month?: string) {
       if (!response.ok) throw new Error('Failed to fetch progress');
 
       const data = await response.json();
+      cache.progress.set(key, data);
       setProgress(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -130,10 +185,20 @@ export function useBudgetProgress(month?: string) {
     fetchProgress();
   }, [fetchProgress]);
 
-  return { progress, loading, error, refresh: fetchProgress };
+  const refresh = useCallback(() => fetchProgress(true), [fetchProgress]);
+
+  return { progress, loading, error, refresh };
 }
 
-// New analytics hooks
+// Clear all analytics cache (useful after data changes)
+export function clearAnalyticsCache() {
+  cache.stats.clear();
+  cache.spending.clear();
+  cache.trends.clear();
+  cache.progress.clear();
+}
+
+// New analytics hooks (without caching for now as they're less frequently used)
 export function useFinancialHealth(startDate: string, endDate: string) {
   const [data, setData] = useState<FinancialHealthScore | null>(null);
   const [loading, setLoading] = useState(true);
