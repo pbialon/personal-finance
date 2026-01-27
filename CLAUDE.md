@@ -72,6 +72,12 @@ React Components → Custom Hooks (fetch) → API Routes (/api/*) → Supabase
 - **Path aliases:** `@/*` maps to `./src/*`
 - **Client components:** Must have `'use client'` directive for interactive components
 
+## Workflow Rules
+
+- **Commit after changes:** After each significant change (new feature, bugfix, refactor), propose a commit. Don't wait for the user to ask.
+- **Small commits:** Prefer frequent, small commits over rare, large ones.
+- **Test before commit:** Run `npm run build` before committing to verify the code compiles.
+
 ## Environment Variables
 
 Required in `.env.local`:
