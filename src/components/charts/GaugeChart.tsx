@@ -48,8 +48,8 @@ export function GaugeChart({ value, max = 100, color = '#3b82f6' }: GaugeChartPr
           <circle cx="100" cy="100" r="8" fill="#374151" />
         </g>
         {/* Min/Max labels */}
-        <text x="20" y="115" textAnchor="middle" className="text-xs fill-gray-400">0</text>
-        <text x="180" y="115" textAnchor="middle" className="text-xs fill-gray-400">{max}</text>
+        <text x="8" y="105" textAnchor="middle" className="text-xs fill-gray-400">0</text>
+        <text x="192" y="105" textAnchor="middle" className="text-xs fill-gray-400">{max}</text>
       </svg>
     </div>
   );
