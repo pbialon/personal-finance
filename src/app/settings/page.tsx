@@ -268,7 +268,7 @@ function SettingsContent() {
   };
 
   const handleDeleteAllTransactions = async () => {
-    if (deleteConfirmText !== 'USUŃ WSZYSTKO') return;
+    if (deleteConfirmText !== 'USUŃ') return;
 
     setDeleting(true);
     try {
@@ -565,7 +565,7 @@ function SettingsContent() {
           setDeleteConfirmText('');
         }}
         title="Usuń wszystkie transakcje"
-        size="md"
+        size="lg"
       >
         <div className="space-y-4">
           <div className="p-4 bg-red-50 rounded-lg border border-red-200">
@@ -579,12 +579,12 @@ function SettingsContent() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Wpisz <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">USUŃ WSZYSTKO</span> aby potwierdzić
+              Wpisz <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">USUŃ</span> aby potwierdzić
             </label>
             <Input
               value={deleteConfirmText}
               onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="USUŃ WSZYSTKO"
+              placeholder="USUŃ"
               className="font-mono"
             />
           </div>
@@ -602,7 +602,7 @@ function SettingsContent() {
             <Button
               variant="ghost"
               onClick={handleDeleteAllTransactions}
-              disabled={deleteConfirmText !== 'USUŃ WSZYSTKO' || deleting}
+              disabled={deleteConfirmText !== 'USUŃ' || deleting}
               loading={deleting}
               className="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
             >
