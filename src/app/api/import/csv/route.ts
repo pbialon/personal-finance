@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { categorizeNewTransaction } from '@/lib/categorization';
 import { findOrCreateMerchant } from '@/lib/merchants';
+import type { ImportProgressEvent } from '@/types';
 
 interface ParsedTransaction {
   transaction_date: string;
@@ -89,120 +90,165 @@ function parseINGCsv(content: string): ParsedTransaction[] {
   return transactions;
 }
 
+function createSSEMessage(event: ImportProgressEvent): string {
+  return `data: ${JSON.stringify(event)}\n\n`;
+}
+
 export async function POST(request: NextRequest) {
-  try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const skipCategorization = formData.get('skipCategorization') === 'true';
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+  const skipCategorization = formData.get('skipCategorization') === 'true';
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // Read file content
-    const buffer = await file.arrayBuffer();
-    // Try to decode as Windows-1250 (Polish encoding)
-    const decoder = new TextDecoder('windows-1250');
-    let content = decoder.decode(buffer);
-
-    // If that doesn't work well, try UTF-8
-    if (!content.includes('Data transakcji')) {
-      const utf8Decoder = new TextDecoder('utf-8');
-      content = utf8Decoder.decode(buffer);
-    }
-
-    const transactions = parseINGCsv(content);
-
-    if (transactions.length === 0) {
-      return NextResponse.json({ error: 'No transactions found in file' }, { status: 400 });
-    }
-
-    const supabase = await createClient();
-
-    let imported = 0;
-    let skipped = 0;
-    let errors = 0;
-
-    for (const tx of transactions) {
-      try {
-        // Create external_id from transaction data - include transaction_id if available for uniqueness
-        const txIdPart = tx.transaction_id || `${tx.amount}-${tx.counterparty_name.slice(0, 30)}`;
-        const externalId = `csv-${tx.transaction_date}-${txIdPart}`.replace(/\s/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
-
-        // Check if already exists
-        const { data: existing } = await supabase
-          .from('transactions')
-          .select('id')
-          .eq('external_id', externalId)
-          .maybeSingle();
-
-        if (existing) {
-          skipped++;
-          continue;
-        }
-
-        const rawDescription = tx.description || tx.counterparty_name || 'Brak opisu';
-
-        let categoryId = null;
-        let categorySource = 'manual';
-        let displayName = rawDescription;
-
-        if (!skipCategorization) {
-          const categorization = await categorizeNewTransaction({
-            raw_description: rawDescription,
-            amount: tx.amount,
-            transaction_date: tx.transaction_date,
-            counterparty_name: tx.counterparty_name || null,
-            counterparty_account: tx.account_number,
-          });
-
-          categoryId = categorization.category_id;
-          categorySource = categorization.category_source;
-          displayName = categorization.display_name;
-        }
-
-        const merchantId = await findOrCreateMerchant(
-          tx.counterparty_name || tx.description,
-          tx.counterparty_name || tx.description
-        );
-
-        await supabase.from('transactions').insert({
-          external_id: externalId,
-          bank_account_id: tx.account_name,
-          raw_description: rawDescription,
-          display_name: displayName,
-          amount: tx.amount,
-          currency: tx.currency,
-          transaction_date: tx.transaction_date,
-          booking_date: tx.booking_date || tx.transaction_date,
-          counterparty_name: tx.counterparty_name || null,
-          counterparty_account: tx.account_number,
-          category_id: categoryId,
-          category_source: categorySource,
-          merchant_id: merchantId,
-          is_income: tx.is_income,
-          is_manual: false,
-        });
-
-        imported++;
-      } catch (err) {
-        console.error('Error importing transaction:', err);
-        errors++;
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      total: transactions.length,
-      imported,
-      skipped,
-      errors,
-    });
-  } catch (error) {
-    console.error('CSV import error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Import failed' },
-      { status: 500 }
+  if (!file) {
+    return new Response(
+      JSON.stringify({ error: 'No file provided' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
+
+  // Read file content
+  const buffer = await file.arrayBuffer();
+  // Try to decode as Windows-1250 (Polish encoding)
+  const decoder = new TextDecoder('windows-1250');
+  let content = decoder.decode(buffer);
+
+  // If that doesn't work well, try UTF-8
+  if (!content.includes('Data transakcji')) {
+    const utf8Decoder = new TextDecoder('utf-8');
+    content = utf8Decoder.decode(buffer);
+  }
+
+  const transactions = parseINGCsv(content);
+
+  if (transactions.length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'No transactions found in file' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Create SSE stream
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+
+      let imported = 0;
+      let skipped = 0;
+      let errors = 0;
+
+      // Send start event
+      const startEvent: ImportProgressEvent = {
+        type: 'start',
+        total: transactions.length,
+        imported: 0,
+        skipped: 0,
+        errors: 0,
+      };
+      controller.enqueue(encoder.encode(createSSEMessage(startEvent)));
+
+      const supabase = await createClient();
+
+      for (let i = 0; i < transactions.length; i++) {
+        const tx = transactions[i];
+        const displayName = tx.counterparty_name || tx.description || 'Brak opisu';
+
+        try {
+          // Create external_id from transaction data - include transaction_id if available for uniqueness
+          const txIdPart = tx.transaction_id || `${tx.amount}-${tx.counterparty_name.slice(0, 30)}`;
+          const externalId = `csv-${tx.transaction_date}-${txIdPart}`.replace(/\s/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+
+          // Check if already exists
+          const { data: existing } = await supabase
+            .from('transactions')
+            .select('id')
+            .eq('external_id', externalId)
+            .maybeSingle();
+
+          if (existing) {
+            skipped++;
+          } else {
+            const rawDescription = tx.description || tx.counterparty_name || 'Brak opisu';
+
+            let categoryId = null;
+            let categorySource = 'manual';
+            let finalDisplayName = rawDescription;
+
+            if (!skipCategorization) {
+              const categorization = await categorizeNewTransaction({
+                raw_description: rawDescription,
+                amount: tx.amount,
+                transaction_date: tx.transaction_date,
+                counterparty_name: tx.counterparty_name || null,
+                counterparty_account: tx.account_number,
+              });
+
+              categoryId = categorization.category_id;
+              categorySource = categorization.category_source;
+              finalDisplayName = categorization.display_name;
+            }
+
+            const merchantId = await findOrCreateMerchant(
+              tx.counterparty_name || tx.description,
+              tx.counterparty_name || tx.description
+            );
+
+            await supabase.from('transactions').insert({
+              external_id: externalId,
+              bank_account_id: tx.account_name,
+              raw_description: rawDescription,
+              display_name: finalDisplayName,
+              amount: tx.amount,
+              currency: tx.currency,
+              transaction_date: tx.transaction_date,
+              booking_date: tx.booking_date || tx.transaction_date,
+              counterparty_name: tx.counterparty_name || null,
+              counterparty_account: tx.account_number,
+              category_id: categoryId,
+              category_source: categorySource,
+              merchant_id: merchantId,
+              is_income: tx.is_income,
+              is_manual: false,
+            });
+
+            imported++;
+          }
+        } catch (err) {
+          console.error('Error importing transaction:', err);
+          errors++;
+        }
+
+        // Send progress event
+        const progressEvent: ImportProgressEvent = {
+          type: 'progress',
+          current: i + 1,
+          total: transactions.length,
+          imported,
+          skipped,
+          errors,
+          lastTransaction: displayName.slice(0, 50),
+        };
+        controller.enqueue(encoder.encode(createSSEMessage(progressEvent)));
+      }
+
+      // Send complete event
+      const completeEvent: ImportProgressEvent = {
+        type: 'complete',
+        total: transactions.length,
+        imported,
+        skipped,
+        errors,
+      };
+      controller.enqueue(encoder.encode(createSSEMessage(completeEvent)));
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }

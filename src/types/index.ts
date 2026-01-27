@@ -252,3 +252,14 @@ export interface GoalWithProgress extends Goal {
   monthlyRequired: number | null;
   projectedDate: string | null;
 }
+
+// Import progress types
+export interface ImportProgressEvent {
+  type: 'start' | 'progress' | 'complete';
+  current?: number;
+  total: number;
+  imported: number;
+  skipped: number;
+  errors: number;
+  lastTransaction?: string;
+}
