@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { StatCards } from '@/components/dashboard/StatCards';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { BudgetProgressCard } from '@/components/dashboard/BudgetProgress';
 import { CategorySpendingCard } from '@/components/dashboard/CategorySpending';
-import { ColumnChart } from '@/components/charts/ColumnChart';
+import { MonthlyTrendCard } from '@/components/dashboard/MonthlyTrendCard';
 import { useMonthlyStats, useCategorySpending, useMonthlyTrends, useBudgetProgress } from '@/hooks/useAnalytics';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -32,25 +31,6 @@ export default function Dashboard() {
   const goToPreviousMonth = () => setCurrentMonth((m) => addMonths(m, -1));
   const goToNextMonth = () => setCurrentMonth((m) => addMonths(m, 1));
   const goToCurrentMonth = () => setCurrentMonth(new Date());
-
-  const columnCategories = trends.map((t) => t.month);
-  const columnSeries = [
-    {
-      name: 'Przychody',
-      data: trends.map((t) => t.income),
-      color: '#22c55e',
-    },
-    {
-      name: 'Wydatki',
-      data: trends.map((t) => t.expenses),
-      color: '#ef4444',
-    },
-    {
-      name: 'Oszczędności netto',
-      data: trends.map((t) => t.netSavings),
-      color: '#3b82f6',
-    },
-  ];
 
   const totalPlanned = progress.reduce((sum, b) => sum + b.planned, 0);
   const totalActual = progress.reduce((sum, b) => sum + b.actual, 0);
@@ -86,19 +66,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CategorySpendingCard spending={spending} />
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Trend miesięczny</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {columnCategories.length > 0 ? (
-                  <ColumnChart categories={columnCategories} series={columnSeries} />
-                ) : (
-                  <p className="text-center text-gray-500 py-8">Brak danych</p>
-                )}
-              </CardContent>
-            </Card>
+            <MonthlyTrendCard trends={trends} />
           </div>
 
           <BudgetProgressCard
