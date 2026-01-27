@@ -7,6 +7,7 @@ import { SpendingPatternsCard } from '@/components/analytics/SpendingPatternsCar
 import { CategoryAnalysisCard } from '@/components/analytics/CategoryAnalysisCard';
 import { TopSpendersCard } from '@/components/analytics/TopSpendersCard';
 import { YearOverviewCard } from '@/components/analytics/YearOverviewCard';
+import { GoalsCard } from '@/components/analytics/GoalsCard';
 import type { TimePeriodRange } from '@/types';
 
 export default function AnalyticsPage() {
@@ -33,6 +34,8 @@ export default function AnalyticsPage() {
         <FinancialHealthCard range={range} />
         <YearOverviewCard range={range} />
       </div>
+
+      <GoalsCard />
 
       <SpendingPatternsCard range={range} />
 

@@ -230,3 +230,25 @@ export interface YearOverview {
     change: number;
   }[];
 }
+
+// Goals types
+export interface Goal {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  deadline: string | null;
+  icon: string | null;
+  color: string;
+  is_completed: boolean;
+  category_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalWithProgress extends Goal {
+  percentage: number;
+  remaining: number;
+  monthlyRequired: number | null;
+  projectedDate: string | null;
+}
