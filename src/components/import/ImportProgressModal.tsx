@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, XCircle, MinusCircle, Loader2, X } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, Loader2, X, Minimize2, Maximize2 } from 'lucide-react';
 import type { ImportProgressEvent } from '@/types';
 
 interface ImportProgressModalProps {
@@ -17,6 +18,8 @@ export function ImportProgressModal({
   progress,
   isComplete,
 }: ImportProgressModalProps) {
+  const [minimized, setMinimized] = useState(false);
+
   if (!isOpen) return null;
 
   const current = progress?.current ?? 0;
@@ -24,17 +27,67 @@ export function ImportProgressModal({
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
   const isLoading = !progress;
 
+  // Minimized view - compact progress bar
+  if (minimized) {
+    return (
+      <div
+        className="fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+        onClick={() => setMinimized(false)}
+      >
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <span className="text-sm text-gray-600">Analizowanie...</span>
+            </>
+          ) : isComplete ? (
+            <>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-sm font-medium text-gray-900">
+                Import zakończony ({progress?.imported ?? 0} nowych)
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-600 transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
+                {current}/{total}
+              </span>
+            </>
+          )}
+          <Maximize2 className="h-4 w-4 text-gray-400 ml-1" />
+        </div>
+      </div>
+    );
+  }
+
+  // Full view
   return (
     <div className="fixed bottom-4 right-4 z-50 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
         <h3 className="font-semibold text-gray-900">Import transakcji</h3>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMinimized(true)}
+            className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+            title="Minimalizuj"
+          >
+            <Minimize2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+            title="Zamknij"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
