@@ -21,6 +21,16 @@ export async function getIgnoredIbans(): Promise<string[]> {
   }
 }
 
+// Extract numeric part of IBAN (without country code)
+function getIbanNumericPart(iban: string): string {
+  const clean = iban.replace(/\s/g, '').toUpperCase();
+  // If starts with 2 letters (country code), remove them
+  if (/^[A-Z]{2}/.test(clean)) {
+    return clean.slice(2);
+  }
+  return clean;
+}
+
 export function isInternalTransfer(
   counterpartyAccount: string | null,
   ignoredIbans: string[]
@@ -31,9 +41,14 @@ export function isInternalTransfer(
 
   // Normalize IBAN - remove spaces and convert to uppercase
   const normalizedAccount = counterpartyAccount.replace(/\s/g, '').toUpperCase();
+  const accountNumericPart = getIbanNumericPart(normalizedAccount);
 
   return ignoredIbans.some((iban) => {
     const normalizedIban = iban.replace(/\s/g, '').toUpperCase();
-    return normalizedAccount === normalizedIban;
+    const ibanNumericPart = getIbanNumericPart(normalizedIban);
+
+    // Match full IBAN or just numeric part (for CSV without country code)
+    return normalizedAccount === normalizedIban ||
+           accountNumericPart === ibanNumericPart;
   });
 }

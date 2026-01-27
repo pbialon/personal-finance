@@ -11,6 +11,12 @@ import { Input } from '@/components/ui/Input';
 import type { BankConnection } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
 
+function formatIban(iban: string): string {
+  // Remove all spaces and format as groups of 4
+  const clean = iban.replace(/\s/g, '');
+  return clean.match(/.{1,4}/g)?.join(' ') || clean;
+}
+
 const INGIcon = () => (
   <img src="/banks/ing.svg" alt="ING" className="w-10 h-10 rounded-lg" />
 );
@@ -304,7 +310,7 @@ function SettingsContent() {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   variant="secondary"
                   onClick={handleSync}
@@ -400,7 +406,7 @@ function SettingsContent() {
                 >
                   <div className="flex items-center gap-3">
                     <CreditCard className="h-4 w-4 text-gray-400" />
-                    <span className="font-mono text-sm">{iban}</span>
+                    <span className="font-mono text-sm">{formatIban(iban)}</span>
                   </div>
                   <button
                     onClick={() => handleRemoveIban(iban)}
