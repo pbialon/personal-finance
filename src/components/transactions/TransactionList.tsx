@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import type { Transaction, Category } from '@/types';
-import { TransactionRow } from './TransactionRow';
+import { groupByDate } from '@/lib/utils';
+import { TransactionDateGroup } from './TransactionDateGroup';
+import { TransactionDetailSheet } from './TransactionDetailSheet';
 import { Card, CardContent } from '../ui/Card';
 import { Loader2 } from 'lucide-react';
 
@@ -20,6 +23,8 @@ export function TransactionList({
   onCategoryChange,
   onDelete,
 }: TransactionListProps) {
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
   if (loading) {
     return (
       <Card>
@@ -40,19 +45,45 @@ export function TransactionList({
     );
   }
 
+  const groupedTransactions = groupByDate(transactions);
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+  };
+
+  const handleCategoryChange = (transactionId: string, categoryId: string) => {
+    onCategoryChange(transactionId, categoryId);
+    // Update selected transaction if it's the one being modified
+    if (selectedTransaction?.id === transactionId) {
+      const updatedCategory = categories.find((c) => c.id === categoryId) || null;
+      setSelectedTransaction({
+        ...selectedTransaction,
+        category_id: categoryId || null,
+        category: updatedCategory || undefined,
+      });
+    }
+  };
+
   return (
-    <Card>
-      <div className="divide-y divide-gray-100">
-        {transactions.map((transaction) => (
-          <TransactionRow
-            key={transaction.id}
-            transaction={transaction}
-            categories={categories}
-            onCategoryChange={onCategoryChange}
-            onDelete={onDelete}
+    <>
+      <Card className="overflow-hidden">
+        {groupedTransactions.map((group) => (
+          <TransactionDateGroup
+            key={group.date}
+            label={group.label}
+            transactions={group.transactions}
+            onTransactionClick={handleTransactionClick}
           />
         ))}
-      </div>
-    </Card>
+      </Card>
+
+      <TransactionDetailSheet
+        transaction={selectedTransaction}
+        categories={categories}
+        onClose={() => setSelectedTransaction(null)}
+        onCategoryChange={handleCategoryChange}
+        onDelete={onDelete}
+      />
+    </>
   );
 }

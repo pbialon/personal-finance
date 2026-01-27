@@ -46,26 +46,30 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">Transakcje</h1>
-          <p className="text-sm text-gray-500">
-            {count} transakcji
-          </p>
+          <span className="bg-gray-100 text-gray-600 text-sm font-medium px-2.5 py-0.5 rounded-full">
+            {count}
+          </span>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
+        {/* Desktop add button */}
+        <Button onClick={() => setShowAddModal(true)} className="hidden sm:flex">
           <Plus className="h-4 w-4 mr-2" />
           Dodaj transakcję
         </Button>
       </div>
 
+      {/* Filters */}
       <TransactionFiltersComponent
         categories={categories}
         filters={filters}
         onFiltersChange={setFilters}
       />
 
+      {/* Transaction list */}
       <TransactionList
         transactions={transactions}
         categories={categories}
@@ -74,6 +78,16 @@ export default function TransactionsPage() {
         onDelete={handleDelete}
       />
 
+      {/* Mobile FAB */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="sm:hidden fixed bottom-24 right-4 z-40 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center"
+        aria-label="Dodaj transakcję"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Add transaction modal */}
       <Modal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

@@ -1,95 +1,93 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import { cn, formatCurrency, formatShortDate } from '@/lib/utils';
-import type { Transaction, Category } from '@/types';
+import { ChevronRight, Store } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
+import { DynamicIcon } from '@/components/ui/DynamicIcon';
+import { CategoryBadge } from '@/components/ui/CategoryBadge';
+import type { Transaction } from '@/types';
 
 interface TransactionRowProps {
   transaction: Transaction;
-  categories: Category[];
-  onCategoryChange: (transactionId: string, categoryId: string) => void;
-  onDelete?: (transactionId: string) => void;
+  onClick?: (transaction: Transaction) => void;
 }
 
-export function TransactionRow({
-  transaction,
-  categories,
-  onCategoryChange,
-  onDelete,
-}: TransactionRowProps) {
-  const [showConfirm, setShowConfirm] = useState(false);
-  const displayName = transaction.display_name || transaction.raw_description || 'Brak opisu';
+export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
+  const displayName =
+    transaction.merchant?.display_name ||
+    transaction.display_name ||
+    transaction.raw_description ||
+    'Brak opisu';
   const amount = transaction.is_income ? transaction.amount : -transaction.amount;
 
+  const merchant = transaction.merchant;
+  const category = transaction.category;
+
   return (
-    <div className="flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <p className={cn(
-          'text-sm font-medium truncate',
-          transaction.is_ignored ? 'text-gray-400' : 'text-gray-900'
-        )}>
-          {displayName}
-        </p>
-        <p className="text-xs text-gray-500">
-          {formatShortDate(transaction.transaction_date)}
-          {transaction.counterparty_name && ` • ${transaction.counterparty_name}`}
-        </p>
+    <button
+      type="button"
+      onClick={() => onClick?.(transaction)}
+      className={cn(
+        'w-full flex items-center gap-4 px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left',
+        transaction.is_ignored && 'opacity-50'
+      )}
+    >
+      {/* Icon - 48x48 */}
+      <div className="flex-shrink-0">
+        {merchant?.icon_url ? (
+          <img
+            src={merchant.icon_url}
+            alt={merchant.display_name}
+            className="w-12 h-12 rounded-2xl object-contain bg-gray-100"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : category?.icon ? (
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{ backgroundColor: category.color + '20' }}
+          >
+            <DynamicIcon
+              name={category.icon}
+              className="w-6 h-6"
+              style={{ color: category.color }}
+            />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <Store className="w-6 h-6 text-gray-400" />
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-4 ml-4">
-        <select
-          value={transaction.category_id || ''}
-          onChange={(e) => onCategoryChange(transaction.id, e.target.value)}
-          className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p
+          className={cn(
+            'text-base font-semibold truncate',
+            transaction.is_ignored ? 'text-gray-400' : 'text-gray-900'
+          )}
         >
-          <option value="">Bez kategorii</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
+          {displayName}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <CategoryBadge category={category} size="sm" showIcon={false} />
+        </div>
+      </div>
 
+      {/* Amount + Chevron */}
+      <div className="flex items-center gap-2 flex-shrink-0">
         <span
           className={cn(
-            'text-sm font-semibold min-w-[100px] text-right',
+            'text-base font-bold tabular-nums',
             amount >= 0 ? 'text-green-600' : 'text-gray-900'
           )}
         >
+          {amount > 0 && '+'}
           {formatCurrency(amount)}
         </span>
-
-        {onDelete && (
-          showConfirm ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  onDelete(transaction.id);
-                  setShowConfirm(false);
-                }}
-                className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Usuń
-              </button>
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Anuluj
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-              title="Usuń transakcję"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )
-        )}
+        <ChevronRight className="w-5 h-5 text-gray-400" />
       </div>
-    </div>
+    </button>
   );
 }
