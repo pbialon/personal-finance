@@ -10,8 +10,17 @@ import { Modal } from '@/components/ui/Modal';
 import type { BankConnection } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
 
+const INGIcon = () => (
+  <svg viewBox="0 0 40 40" className="w-10 h-10">
+    <rect width="40" height="40" rx="8" fill="#FF6200" />
+    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" fontFamily="Arial, sans-serif">
+      ING
+    </text>
+  </svg>
+);
+
 const SUPPORTED_BANKS = [
-  { id: 'ING', name: 'ING Bank Śląski', enabled: true, color: '#FF6200' },
+  { id: 'ING', name: 'ING Bank Śląski', enabled: true, color: '#FF6200', icon: INGIcon },
   { id: 'PKO', name: 'PKO Bank Polski', enabled: false, color: '#004B87' },
   { id: 'MBANK', name: 'mBank', enabled: false, color: '#D71920' },
   { id: 'SANTANDER', name: 'Santander Bank Polska', enabled: false, color: '#EC0000' },
@@ -169,12 +178,20 @@ function SettingsContent() {
             <>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                    style={{ backgroundColor: SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name)?.color || '#6b7280' }}
-                  >
-                    {(connection.aspsp_name || 'B').charAt(0)}
-                  </div>
+                  {(() => {
+                    const bank = SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name);
+                    const IconComponent = bank?.icon;
+                    return IconComponent ? (
+                      <IconComponent />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                        style={{ backgroundColor: bank?.color || '#6b7280' }}
+                      >
+                        {(connection.aspsp_name || 'B').charAt(0)}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <p className="font-medium">{SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name)?.name || connection.aspsp_name || 'Bank'}</p>
                     <p className="text-sm text-gray-500">
@@ -277,12 +294,16 @@ function SettingsContent() {
                     : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
                 )}
               >
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
-                  style={{ backgroundColor: bank.color }}
-                >
-                  {bank.name.charAt(0)}
-                </div>
+                {bank.icon ? (
+                  <bank.icon />
+                ) : (
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    style={{ backgroundColor: bank.color }}
+                  >
+                    {bank.name.charAt(0)}
+                  </div>
+                )}
                 <div className="flex-1">
                   <p className={cn('font-medium', !bank.enabled && 'text-gray-400')}>
                     {bank.name}
