@@ -1,9 +1,16 @@
 import OpenAI from 'openai';
 import type { Category } from '@/types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 interface CategorizationResult {
   category_id: string;
@@ -18,6 +25,8 @@ export async function categorizeTransaction(
   counterpartyName: string | null,
   categories: Category[]
 ): Promise<CategorizationResult> {
+  const openai = getOpenAIClient();
+
   const categoriesPrompt = categories
     .map(c => `- ${c.name} (ID: ${c.id}): ${c.ai_prompt || 'Brak opisu'}`)
     .join('\n');
