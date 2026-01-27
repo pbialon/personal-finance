@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { useCategoryAnalysis, useCategorySpending } from '@/hooks/useAnalytics';
@@ -8,6 +8,56 @@ import { useCategories } from '@/hooks/useCategories';
 import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { TimePeriodRange } from '@/types';
+
+interface CategoryChipProps {
+  id: string;
+  name: string;
+  color: string;
+  percentage?: number;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}
+
+const CategoryChip = memo(function CategoryChip({
+  id,
+  name,
+  color,
+  percentage,
+  isSelected,
+  onSelect,
+}: CategoryChipProps) {
+  return (
+    <button
+      onClick={() => onSelect(id)}
+      className={cn(
+        'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+        isSelected
+          ? 'ring-2 ring-offset-1'
+          : 'hover:ring-1 hover:ring-gray-300'
+      )}
+      style={{
+        backgroundColor: isSelected ? color + '20' : '#f3f4f6',
+        color: isSelected ? color : '#4b5563',
+        // @ts-expect-error CSS custom property for ring color
+        '--tw-ring-color': isSelected ? color : undefined,
+      }}
+    >
+      <span
+        className="w-2.5 h-2.5 rounded-full shrink-0"
+        style={{ backgroundColor: color }}
+      />
+      <span>{name}</span>
+      {percentage !== undefined && percentage > 0 && (
+        <span className={cn(
+          'text-xs',
+          isSelected ? 'opacity-70' : 'text-gray-400'
+        )}>
+          {percentage}%
+        </span>
+      )}
+    </button>
+  );
+});
 
 interface CategoryAnalysisCardProps {
   range: TimePeriodRange;
@@ -41,54 +91,70 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
     setShowAllMerchants(false);
   }, [selectedCategoryId]);
 
-  // Sort categories by spending amount
-  const sortedCategories = [...categories]
-    .filter(c => !c.is_savings)
-    .sort((a, b) => {
-      const spendingA = spending.find(s => s.categoryId === a.id)?.amount || 0;
-      const spendingB = spending.find(s => s.categoryId === b.id)?.amount || 0;
-      return spendingB - spendingA;
-    });
+  // Sort categories by spending amount - memoized
+  const sortedCategories = useMemo(() =>
+    [...categories]
+      .filter(c => !c.is_savings)
+      .sort((a, b) => {
+        const spendingA = spending.find(s => s.categoryId === a.id)?.amount || 0;
+        const spendingB = spending.find(s => s.categoryId === b.id)?.amount || 0;
+        return spendingB - spendingA;
+      }),
+    [categories, spending]
+  );
+
+  const handleCategorySelect = useCallback((categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+  }, []);
+
+  // Memoize category chips data
+  const categoryChipsData = useMemo(() =>
+    sortedCategories.map(cat => ({
+      ...cat,
+      spending: spending.find(s => s.categoryId === cat.id),
+    })),
+    [sortedCategories, spending]
+  );
+
+  // Memoize trend data - must be before early returns to maintain hook order
+  const { trendCategories, trendSeries } = useMemo(() => {
+    if (!data) return { trendCategories: [], trendSeries: [] };
+
+    const series = [
+      {
+        name: 'Bieżący okres',
+        data: data.monthlyTrend.map((m) => m.amount),
+        color: data.categoryColor,
+      },
+    ];
+
+    if (data.monthlyTrend.some((m) => m.prevYearAmount !== undefined)) {
+      series.push({
+        name: 'Poprzedni rok',
+        data: data.monthlyTrend.map((m) => m.prevYearAmount || 0),
+        color: '#9ca3af',
+      });
+    }
+
+    return {
+      trendCategories: data.monthlyTrend.map((m) => m.month),
+      trendSeries: series,
+    };
+  }, [data]);
 
   const renderCategoryChips = () => (
     <div className="flex flex-wrap gap-2">
-      {sortedCategories.map((cat) => {
-        const isSelected = selectedCategoryId === cat.id;
-        const categorySpending = spending.find(s => s.categoryId === cat.id);
-
-        return (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategoryId(cat.id)}
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
-              isSelected
-                ? 'ring-2 ring-offset-1'
-                : 'hover:ring-1 hover:ring-gray-300'
-            )}
-            style={{
-              backgroundColor: isSelected ? cat.color + '20' : '#f3f4f6',
-              color: isSelected ? cat.color : '#4b5563',
-              // @ts-expect-error CSS custom property for ring color
-              '--tw-ring-color': isSelected ? cat.color : undefined,
-            }}
-          >
-            <span
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: cat.color }}
-            />
-            <span>{cat.name}</span>
-            {categorySpending && categorySpending.amount > 0 && (
-              <span className={cn(
-                'text-xs',
-                isSelected ? 'opacity-70' : 'text-gray-400'
-              )}>
-                {categorySpending.percentage}%
-              </span>
-            )}
-          </button>
-        );
-      })}
+      {categoryChipsData.map((cat) => (
+        <CategoryChip
+          key={cat.id}
+          id={cat.id}
+          name={cat.name}
+          color={cat.color}
+          percentage={cat.spending?.percentage}
+          isSelected={selectedCategoryId === cat.id}
+          onSelect={handleCategorySelect}
+        />
+      ))}
     </div>
   );
 
@@ -130,22 +196,6 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
 
   if (!data) return null;
 
-  const trendSeries = [
-    {
-      name: 'Bieżący okres',
-      data: data.monthlyTrend.map((m) => m.amount),
-      color: data.categoryColor,
-    },
-  ];
-
-  if (data.monthlyTrend.some((m) => m.prevYearAmount !== undefined)) {
-    trendSeries.push({
-      name: 'Poprzedni rok',
-      data: data.monthlyTrend.map((m) => m.prevYearAmount || 0),
-      color: '#9ca3af',
-    });
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -181,7 +231,7 @@ export function CategoryAnalysisCard({ range }: CategoryAnalysisCardProps) {
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-4">Trend miesięczny</h4>
             <TrendChart
-              categories={data.monthlyTrend.map((m) => m.month)}
+              categories={trendCategories}
               series={trendSeries}
             />
           </div>
