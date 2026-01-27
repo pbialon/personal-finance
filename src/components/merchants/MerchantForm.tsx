@@ -69,7 +69,6 @@ export function MerchantForm({ merchant, categories, onSubmit, onCancel }: Merch
         value={iconUrl}
         onChange={(e) => setIconUrl(e.target.value)}
         placeholder="https://example.com/icon.png"
-        type="url"
       />
 
       {iconUrl && (
@@ -98,7 +97,6 @@ export function MerchantForm({ merchant, categories, onSubmit, onCancel }: Merch
         value={website}
         onChange={(e) => setWebsite(e.target.value)}
         placeholder="https://example.com"
-        type="url"
       />
 
       <div className="flex gap-2 pt-2">
