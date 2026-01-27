@@ -361,17 +361,17 @@ export async function POST(request: NextRequest) {
               .single();
 
             merchantId = existing?.id;
-          } else {
+          } else if (newMerchant) {
             merchantId = newMerchant.id;
             // Add to case-insensitive map
             merchantMapLower.set(merchantName, {
-              id: merchantId,
+              id: newMerchant.id,
               name: merchantName,
             });
             // Add to brand map
             const brand = getNormalizedBrand(merchantName);
             if (!brandToMerchant.has(brand)) {
-              brandToMerchant.set(brand, { id: merchantId, name: merchantName });
+              brandToMerchant.set(brand, { id: newMerchant.id, name: merchantName });
             }
             merchantNames.push(merchantName);
             newMerchants++;
