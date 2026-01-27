@@ -17,6 +17,7 @@ interface UseTransactionsResult {
     transaction_date: string;
     is_income: boolean;
   }) => Promise<void>;
+  deleteTransaction: (transactionId: string) => Promise<void>;
 }
 
 export function useTransactions(filters: TransactionFilters = {}): UseTransactionsResult {
@@ -90,6 +91,17 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     setCount((prev) => prev + 1);
   };
 
+  const deleteTransaction = async (transactionId: string) => {
+    const response = await fetch(`/api/transactions?id=${transactionId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) throw new Error('Failed to delete transaction');
+
+    setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
+    setCount((prev) => prev - 1);
+  };
+
   return {
     transactions,
     loading,
@@ -98,5 +110,6 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     refresh: fetchTransactions,
     updateCategory,
     addTransaction,
+    deleteTransaction,
   };
 }

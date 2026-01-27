@@ -10,6 +10,7 @@ interface TransactionListProps {
   categories: Category[];
   loading?: boolean;
   onCategoryChange: (transactionId: string, categoryId: string) => void;
+  onDelete?: (transactionId: string) => void;
 }
 
 export function TransactionList({
@@ -17,6 +18,7 @@ export function TransactionList({
   categories,
   loading,
   onCategoryChange,
+  onDelete,
 }: TransactionListProps) {
   if (loading) {
     return (
@@ -47,6 +49,7 @@ export function TransactionList({
             transaction={transaction}
             categories={categories}
             onCategoryChange={onCategoryChange}
+            onDelete={onDelete}
           />
         ))}
       </div>
