@@ -41,15 +41,20 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
                 ? transaction.amount
                 : -transaction.amount;
               const displayName =
+                transaction.description ||
                 merchant?.display_name ||
                 transaction.display_name ||
                 transaction.raw_description ||
                 'Brak opisu';
 
+              // Subtitle: show merchant name if different from displayName
+              const subtitle = merchant?.display_name;
+              const showSubtitle = subtitle && subtitle !== displayName;
+
               return (
                 <Link
                   key={transaction.id}
-                  href="/transactions"
+                  href={`/transactions/${transaction.id}`}
                   className="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition-colors"
                 >
                   {/* Icon */}
@@ -83,11 +88,9 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
                     <p className="text-base font-semibold text-gray-900 truncate">
                       {displayName}
                     </p>
-                    {transaction.description && (
+                    {showSubtitle && (
                       <p className="text-sm text-gray-500 truncate">
-                        {transaction.description.length > 60
-                          ? transaction.description.slice(0, 60) + '...'
-                          : transaction.description}
+                        {subtitle}
                       </p>
                     )}
                     <div className="mt-1">
