@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -13,6 +13,22 @@ interface CategorySpendingCardProps {
 
 export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
+
+  const handleLegendHover = useCallback((index: number | null) => {
+    setHoveredIndex(index);
+    const chart = chartRef.current?.chart;
+    if (chart && chart.series[0]) {
+      const points = chart.series[0].points;
+      if (index !== null && points[index]) {
+        points[index].setState('hover');
+        chart.tooltip.refresh(points[index]);
+      } else {
+        points.forEach((point) => point.setState(''));
+        chart.tooltip.hide();
+      }
+    }
+  }, []);
 
   const chartData = useMemo(
     () =>
@@ -106,7 +122,7 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
         <CardTitle>Wydatki per kategoria</CardTitle>
       </CardHeader>
       <CardContent>
-        <HighchartsReact highcharts={Highcharts} options={options} />
+        <HighchartsReact highcharts={Highcharts} options={options} ref={chartRef} />
 
         {/* Compact legend */}
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5">
@@ -114,15 +130,15 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
             <div
               key={item.categoryId}
               className={cn(
-                'flex items-center justify-between py-1.5 px-2 rounded-lg transition-all duration-150',
+                'flex items-center justify-between py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer',
                 hoveredIndex === index
                   ? 'bg-gray-100'
                   : hoveredIndex !== null
                   ? 'opacity-50'
                   : 'hover:bg-gray-50'
               )}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseEnter={() => handleLegendHover(index)}
+              onMouseLeave={() => handleLegendHover(null)}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div
