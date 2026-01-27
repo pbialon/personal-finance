@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard } from 'lucide-react';
+import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -46,6 +46,9 @@ function SettingsContent() {
   const [ignoredIbans, setIgnoredIbans] = useState<string[]>([]);
   const [newIban, setNewIban] = useState('');
   const [savingIbans, setSavingIbans] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -220,6 +223,31 @@ function SettingsContent() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleDeleteAllTransactions = async () => {
+    if (deleteConfirmText !== 'USUŃ WSZYSTKO') return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/transactions/clear', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setMessage({ type: 'error', text: data.error });
+      } else {
+        setMessage({ type: 'success', text: 'Wszystkie transakcje zostały usunięte' });
+        setShowDeleteModal(false);
+        setDeleteConfirmText('');
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Błąd podczas usuwania transakcji' });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -445,6 +473,92 @@ function SettingsContent() {
           </p>
         </CardContent>
       </Card>
+
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Strefa zagrożenia
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
+            <div>
+              <p className="font-medium text-red-900">Usuń wszystkie transakcje</p>
+              <p className="text-sm text-red-600">
+                Ta akcja jest nieodwracalna. Wszystkie transakcje zostaną trwale usunięte.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => setShowDeleteModal(true)}
+              className="text-red-600 hover:bg-red-100 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Usuń wszystko
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteConfirmText('');
+        }}
+        title="Usuń wszystkie transakcje"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-red-900">Uwaga!</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Ta akcja usunie wszystkie transakcje z bazy danych. Operacja jest nieodwracalna.
+                  Kategorie, budżety i kontrahenci pozostaną zachowani.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Wpisz <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">USUŃ WSZYSTKO</span> aby potwierdzić
+            </label>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="USUŃ WSZYSTKO"
+              className="font-mono"
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteConfirmText('');
+              }}
+            >
+              Anuluj
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleDeleteAllTransactions}
+              disabled={deleteConfirmText !== 'USUŃ WSZYSTKO' || deleting}
+              loading={deleting}
+              className="bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Usuń wszystkie transakcje
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={showBankModal}
