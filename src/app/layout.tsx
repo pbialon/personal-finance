@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MainContent } from "@/components/layout/MainContent";
 import { MobileNav } from "@/components/layout/MobileNav";
 
 const inter = Inter({
@@ -22,13 +24,11 @@ export default function RootLayout({
   return (
     <html lang="pl">
       <body className={`${inter.variable} antialiased`}>
-        <Sidebar />
-        <main className="lg:pl-64 min-h-screen pb-20 lg:pb-0">
-          <div className="p-4 lg:p-6">
-            {children}
-          </div>
-        </main>
-        <MobileNav />
+        <SidebarProvider>
+          <Sidebar />
+          <MainContent>{children}</MainContent>
+          <MobileNav />
+        </SidebarProvider>
       </body>
     </html>
   );
