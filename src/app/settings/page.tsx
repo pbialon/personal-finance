@@ -2,12 +2,24 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import type { BankConnection } from '@/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
+
+const SUPPORTED_BANKS = [
+  { id: 'ING', name: 'ING Bank Śląski', enabled: true, color: '#FF6200' },
+  { id: 'PKO', name: 'PKO Bank Polski', enabled: false, color: '#004B87' },
+  { id: 'MBANK', name: 'mBank', enabled: false, color: '#D71920' },
+  { id: 'SANTANDER', name: 'Santander Bank Polska', enabled: false, color: '#EC0000' },
+  { id: 'PEKAO', name: 'Bank Pekao', enabled: false, color: '#C8102E' },
+  { id: 'ALIOR', name: 'Alior Bank', enabled: false, color: '#E4002B' },
+  { id: 'MILLENNIUM', name: 'Bank Millennium', enabled: false, color: '#6B2C91' },
+  { id: 'BNP', name: 'BNP Paribas', enabled: false, color: '#00915A' },
+];
 
 function SettingsContent() {
   const searchParams = useSearchParams();
@@ -16,6 +28,8 @@ function SettingsContent() {
   const [connecting, setConnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedBank, setSelectedBank] = useState<string | null>(null);
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -50,14 +64,15 @@ function SettingsContent() {
     fetchConnection();
   }, []);
 
-  const handleConnect = async () => {
+  const handleConnect = async (bankId: string) => {
     setConnecting(true);
+    setSelectedBank(bankId);
     try {
       const response = await fetch('/api/bank/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          aspspName: 'ING',
+          aspspName: bankId,
           redirectUri: `${window.location.origin}/api/bank/callback`,
         }),
       });
@@ -68,11 +83,14 @@ function SettingsContent() {
         window.location.href = data.authUrl;
       } else {
         setMessage({ type: 'error', text: 'Nie udało się uzyskać URL autoryzacji' });
+        setShowBankModal(false);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Błąd podczas łączenia z bankiem' });
+      setShowBankModal(false);
     } finally {
       setConnecting(false);
+      setSelectedBank(null);
     }
   };
 
@@ -150,14 +168,22 @@ function SettingsContent() {
           ) : connection && connection.status === 'active' ? (
             <>
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{connection.aspsp_name || 'Bank'}</p>
-                  <p className="text-sm text-gray-500">
-                    Ostatnia synchronizacja:{' '}
-                    {connection.last_sync_at
-                      ? formatDate(connection.last_sync_at)
-                      : 'Nigdy'}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
+                    style={{ backgroundColor: SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name)?.color || '#6b7280' }}
+                  >
+                    {(connection.aspsp_name || 'B').charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-medium">{SUPPORTED_BANKS.find(b => b.id === connection.aspsp_name)?.name || connection.aspsp_name || 'Bank'}</p>
+                    <p className="text-sm text-gray-500">
+                      Ostatnia synchronizacja:{' '}
+                      {connection.last_sync_at
+                        ? formatDate(connection.last_sync_at)
+                        : 'Nigdy'}
+                    </p>
+                  </div>
                 </div>
                 <Badge
                   variant={isConsentExpired ? 'danger' : daysUntilExpiry && daysUntilExpiry < 14 ? 'warning' : 'success'}
@@ -187,9 +213,9 @@ function SettingsContent() {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Synchronizuj teraz
                 </Button>
-                <Button onClick={handleConnect} loading={connecting}>
+                <Button onClick={() => setShowBankModal(true)}>
                   <Link2 className="h-4 w-4 mr-2" />
-                  {isConsentExpired ? 'Połącz ponownie' : 'Odnów połączenie'}
+                  {isConsentExpired ? 'Połącz ponownie' : 'Zmień bank'}
                 </Button>
               </div>
             </>
@@ -199,9 +225,9 @@ function SettingsContent() {
                 Połącz swoje konto bankowe, aby automatycznie importować transakcje.
                 Wspieramy polskie banki przez Enable Banking (PSD2).
               </p>
-              <Button onClick={handleConnect} loading={connecting}>
-                <Link2 className="h-4 w-4 mr-2" />
-                Połącz z ING
+              <Button onClick={() => setShowBankModal(true)}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Połącz z bankiem
               </Button>
             </>
           )}
@@ -227,6 +253,52 @@ function SettingsContent() {
           </p>
         </CardContent>
       </Card>
+
+      <Modal
+        isOpen={showBankModal}
+        onClose={() => setShowBankModal(false)}
+        title="Wybierz bank"
+        size="md"
+      >
+        <div className="space-y-2">
+          <p className="text-sm text-gray-500 mb-4">
+            Wybierz swój bank, aby połączyć konto przez bezpieczne API PSD2.
+          </p>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {SUPPORTED_BANKS.map((bank) => (
+              <button
+                key={bank.id}
+                onClick={() => bank.enabled && handleConnect(bank.id)}
+                disabled={!bank.enabled || connecting}
+                className={cn(
+                  'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+                  bank.enabled
+                    ? 'border-gray-200 hover:border-blue-500 hover:bg-blue-50 cursor-pointer'
+                    : 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                )}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                  style={{ backgroundColor: bank.color }}
+                >
+                  {bank.name.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <p className={cn('font-medium', !bank.enabled && 'text-gray-400')}>
+                    {bank.name}
+                  </p>
+                  {!bank.enabled && (
+                    <p className="text-xs text-gray-400">Wkrótce</p>
+                  )}
+                </div>
+                {connecting && selectedBank === bank.id && (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
