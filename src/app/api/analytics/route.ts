@@ -604,12 +604,12 @@ export async function GET(request: NextRequest) {
         .eq('is_savings', true),
       supabase
         .from('categories')
-        .select('id, name, color')
+        .select('id, name, color, icon')
         .eq('is_savings', false),
     ]);
 
     const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
-    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c]));
+    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c as { id: string; name: string; color: string; icon: string | null }]));
 
     const processTransactions = (transactions: typeof currentRes.data) => {
       let totalIncome = 0;
@@ -673,6 +673,7 @@ export async function GET(request: NextRequest) {
         return {
           categoryName: cat.name,
           categoryColor: cat.color,
+          categoryIcon: cat.icon,
           currentYear: currentAmount,
           prevYear: prevAmount,
           change: calculatePercentageChange(currentAmount, prevAmount),

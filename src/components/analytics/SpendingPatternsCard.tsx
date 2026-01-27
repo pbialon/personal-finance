@@ -89,33 +89,35 @@ export function SpendingPatternsCard({ range }: SpendingPatternsCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-          <div className="flex flex-col">
+        {/* Charts row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {/* Wydatki wg dnia tygodnia */}
+          <div className="bg-gray-50/50 rounded-xl p-5">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Wydatki wg dnia tygodnia</h4>
-            <div className="flex-1 flex flex-col justify-center">
-              <HorizontalBarChart
-                data={data.byDayOfWeek.map((d) => ({
-                  name: d.day,
-                  value: d.amount,
-                  count: d.count,
-                }))}
-              />
-            </div>
+            <HorizontalBarChart
+              data={data.byDayOfWeek.map((d) => ({
+                name: d.day,
+                value: d.amount,
+                count: d.count,
+              }))}
+            />
           </div>
-          <div className="lg:border-l lg:border-gray-100 lg:pl-12 flex flex-col">
+
+          {/* Kalendarz wydatków */}
+          <div className="bg-gray-50/50 rounded-xl p-5">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Kalendarz wydatków</h4>
-            <div className="flex-1">
-              <CalendarHeatmap
-                data={data.byDayOfMonth}
-                month={month}
-                year={year}
-              />
-            </div>
+            <CalendarHeatmap
+              data={data.byDayOfMonth}
+              month={month}
+              year={year}
+            />
           </div>
-        </div>
-        <div className="mt-8 pt-8 border-t border-gray-100">
-          <h4 className="text-sm font-medium text-gray-700 mb-4">Heatmapa kategorii wg dni tygodnia</h4>
-          <HeatmapChart data={data.categoryHeatmap} />
+
+          {/* Heatmapa kategorii */}
+          <div className="bg-gray-50/50 rounded-xl p-5 md:col-span-2 xl:col-span-1">
+            <h4 className="text-sm font-medium text-gray-700 mb-4">Heatmapa kategorii</h4>
+            <HeatmapChart data={data.categoryHeatmap} />
+          </div>
         </div>
       </CardContent>
     </Card>

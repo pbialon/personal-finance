@@ -224,6 +224,7 @@ export interface YearOverview {
   categoryYoY: {
     categoryName: string;
     categoryColor: string;
+    categoryIcon: string | null;
     currentYear: number;
     prevYear: number;
     change: number;

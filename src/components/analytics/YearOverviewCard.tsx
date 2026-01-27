@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ColumnChart } from '@/components/charts/ColumnChart';
+import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { useYearOverview } from '@/hooks/useAnalytics';
 import { Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -124,13 +125,24 @@ export function YearOverviewCard({ range }: YearOverviewCardProps) {
                   {data.categoryYoY.map((cat) => (
                     <tr key={cat.categoryName} className="border-b border-gray-100">
                       <td className="py-2">
-                        <span
-                          className="inline-flex items-center gap-2"
-                        >
-                          <span
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: cat.categoryColor }}
-                          />
+                        <span className="inline-flex items-center gap-2">
+                          {cat.categoryIcon ? (
+                            <span
+                              className="w-6 h-6 rounded flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: cat.categoryColor + '20' }}
+                            >
+                              <DynamicIcon
+                                name={cat.categoryIcon}
+                                className="w-3.5 h-3.5"
+                                style={{ color: cat.categoryColor }}
+                              />
+                            </span>
+                          ) : (
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: cat.categoryColor }}
+                            />
+                          )}
                           {cat.categoryName}
                         </span>
                       </td>
