@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { DynamicIcon } from '../ui/DynamicIcon';
 import type { Category } from '@/types';
 
 interface CategoryFormProps {
@@ -93,13 +94,14 @@ export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps
               key={i}
               type="button"
               onClick={() => setIcon(i)}
-              className={`px-3 py-1 text-sm rounded-lg border transition-all ${
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
                 icon === i
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'ring-2 ring-offset-2 ring-gray-900'
+                  : 'hover:opacity-80'
               }`}
+              style={{ backgroundColor: color + '20' }}
             >
-              {i}
+              <DynamicIcon name={i} className="w-5 h-5" style={{ color }} />
             </button>
           ))}
         </div>
