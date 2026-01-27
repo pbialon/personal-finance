@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle, TrendingUp, TrendingDown, PiggyBank, AlertTriangle } from 'lucide-react';
+import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Category, WizardIncomeItem, WizardExpenseItem } from '@/types';
 
@@ -24,16 +25,8 @@ export function SummaryStep({
   const savings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
 
-  const getCategoryName = (id: string) => {
-    return categories.find((c) => c.id === id)?.name || 'Nieznana';
-  };
-
-  const getCategoryIcon = (id: string) => {
-    return categories.find((c) => c.id === id)?.icon || '📦';
-  };
-
-  const getCategoryColor = (id: string) => {
-    return categories.find((c) => c.id === id)?.color || '#9CA3AF';
+  const getCategory = (id: string) => {
+    return categories.find((c) => c.id === id);
   };
 
   // Przygotuj dane do wykresu (prosty bar chart)
@@ -139,17 +132,24 @@ export function SummaryStep({
             <span className="text-sm font-medium text-gray-900">Wydatki stałe</span>
           </div>
           <div className="space-y-1 max-h-[120px] overflow-y-auto">
-            {fixedExpenses.filter(e => e.amount > 0).map((expense) => (
-              <div key={expense.categoryId} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1">
-                  <span>{getCategoryIcon(expense.categoryId)}</span>
-                  <span className="text-gray-600 truncate">
-                    {getCategoryName(expense.categoryId)}
-                  </span>
+            {fixedExpenses.filter(e => e.amount > 0).map((expense) => {
+              const cat = getCategory(expense.categoryId);
+              return (
+                <div key={expense.categoryId} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1">
+                    <DynamicIcon
+                      name={cat?.icon || null}
+                      className="w-4 h-4"
+                      style={{ color: cat?.color }}
+                    />
+                    <span className="text-gray-600 truncate">
+                      {cat?.name || 'Nieznana'}
+                    </span>
+                  </div>
+                  <span className="font-medium">{formatCurrency(expense.amount)}</span>
                 </div>
-                <span className="font-medium">{formatCurrency(expense.amount)}</span>
-              </div>
-            ))}
+              );
+            })}
             {fixedExpenses.filter(e => e.amount > 0).length === 0 && (
               <p className="text-sm text-gray-400">Brak wydatków stałych</p>
             )}
@@ -164,21 +164,28 @@ export function SummaryStep({
             Budżety kategorii
           </span>
           <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto">
-            {categoryBudgets.filter(b => b.amount > 0).map((budget) => (
-              <div
-                key={budget.categoryId}
-                className="flex items-center justify-between text-sm p-2 rounded"
-                style={{ backgroundColor: `${getCategoryColor(budget.categoryId)}10` }}
-              >
-                <div className="flex items-center gap-1">
-                  <span>{getCategoryIcon(budget.categoryId)}</span>
-                  <span className="text-gray-700 truncate">
-                    {getCategoryName(budget.categoryId)}
-                  </span>
+            {categoryBudgets.filter(b => b.amount > 0).map((budget) => {
+              const cat = getCategory(budget.categoryId);
+              return (
+                <div
+                  key={budget.categoryId}
+                  className="flex items-center justify-between text-sm p-2 rounded"
+                  style={{ backgroundColor: `${cat?.color || '#9CA3AF'}10` }}
+                >
+                  <div className="flex items-center gap-1">
+                    <DynamicIcon
+                      name={cat?.icon || null}
+                      className="w-4 h-4"
+                      style={{ color: cat?.color }}
+                    />
+                    <span className="text-gray-700 truncate">
+                      {cat?.name || 'Nieznana'}
+                    </span>
+                  </div>
+                  <span className="font-medium">{formatCurrency(budget.amount)}</span>
                 </div>
-                <span className="font-medium">{formatCurrency(budget.amount)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

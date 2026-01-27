@@ -2,6 +2,7 @@
 
 import { PieChart } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
+import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Category, WizardExpenseItem } from '@/types';
 
@@ -120,10 +121,14 @@ export function CategoryBudgetsStep({
               className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
             >
               <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                className="h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: `${category.color}20` }}
               >
-                {category.icon || '📦'}
+                <DynamicIcon
+                  name={category.icon}
+                  className="w-5 h-5"
+                  style={{ color: category.color }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
