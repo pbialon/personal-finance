@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import { DynamicIcon } from '../ui/DynamicIcon';
 import type { Category } from '@/types';
 
 interface CategoryListProps {
@@ -27,10 +28,15 @@ export function CategoryList({ categories, onEdit, onDelete }: CategoryListProps
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: category.color }}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: category.color + '20' }}
               >
-                {category.name.charAt(0).toUpperCase()}
+                <DynamicIcon
+                  name={category.icon}
+                  className="w-6 h-6"
+                  style={{ color: category.color }}
+                  fallback={<span className="font-bold text-lg" style={{ color: category.color }}>{category.name.charAt(0).toUpperCase()}</span>}
+                />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">{category.name}</h3>
