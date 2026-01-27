@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTransactions, mapTransaction } from '@/lib/enable-banking';
 import { categorizeNewTransaction } from '@/lib/categorization';
+import { findOrCreateMerchant } from '@/lib/merchants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,11 +62,17 @@ export async function POST(request: NextRequest) {
         counterparty_account: mapped.counterparty_account,
       });
 
+      const merchantId = await findOrCreateMerchant(
+        mapped.counterparty_name || mapped.raw_description,
+        mapped.counterparty_name || mapped.raw_description
+      );
+
       await supabase.from('transactions').insert({
         ...mapped,
         display_name: categorization.display_name,
         category_id: categorization.category_id,
         category_source: categorization.category_source,
+        merchant_id: merchantId,
       });
 
       imported++;
