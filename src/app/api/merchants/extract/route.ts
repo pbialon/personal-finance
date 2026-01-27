@@ -41,37 +41,37 @@ ${categoriesPrompt}
 CRITICAL RULES:
 1. ALWAYS extract just the BRAND NAME - remove locations, cities, transaction IDs, terminal numbers
    Examples:
-   - "WOLT WARSAW POL" → "wolt"
-   - "Wolt Poland POL" → "wolt"
-   - "Wolt Warszawa POL" → "wolt"
-   - "LIDL FORT SLUZEW WARSZAWA" → "lidl"
-   - "BIEDRONKA 1234 KRAKOW" → "biedronka"
-   - "UBER *EATS HELP.UBER.COM" → "uber eats"
-   - "BOLT OPERATIONS OU" → "bolt"
-   - "ALLEGRO SP. Z O.O." → "allegro"
+   - "WOLT WARSAW POL" → "Wolt"
+   - "Wolt Poland POL" → "Wolt"
+   - "Wolt Warszawa POL" → "Wolt"
+   - "LIDL FORT SLUZEW WARSZAWA" → "Lidl"
+   - "BIEDRONKA 1234 KRAKOW" → "Biedronka"
+   - "UBER *EATS HELP.UBER.COM" → "Uber eats"
+   - "BOLT OPERATIONS OU" → "Bolt"
+   - "ALLEGRO SP. Z O.O." → "Allegro"
 
 2. If an existing merchant name matches the brand (ignoring case), return that EXACT existing name
 3. Return null for personal transfers (person names, IBAN transfers to individuals)
 4. Select the most appropriate category based on merchant type
 
 Common brands to normalize:
-- All Wolt variations → "wolt"
-- All Lidl variations → "lidl"
-- All Biedronka variations → "biedronka"
-- All Żabka variations → "żabka"
-- All Bolt variations → "bolt"
-- All Uber/Uber Eats variations → "uber eats" or "uber"
-- All Glovo variations → "glovo"
-- All Orlen variations → "orlen"
-- All Netflix variations → "netflix"
-- All Spotify variations → "spotify"
-- All Allegro variations → "allegro"
-- All Amazon variations → "amazon"
+- All Wolt variations → "Wolt"
+- All Lidl variations → "Lidl"
+- All Biedronka variations → "Biedronka"
+- All Żabka variations → "Żabka"
+- All Bolt variations → "Bolt"
+- All Uber/Uber Eats variations → "Uber eats" or "Uber"
+- All Glovo variations → "Glovo"
+- All Orlen variations → "Orlen"
+- All Netflix variations → "Netflix"
+- All Spotify variations → "Spotify"
+- All Allegro variations → "Allegro"
+- All Amazon variations → "Amazon"
 
 Respond in JSON format:
 {
-  "merchant_name": "string or null (lowercase brand name only!)",
-  "display_name": "string (nicely capitalized brand name)",
+  "merchant_name": "string or null (capitalized brand name only!)",
+  "display_name": "string (nicely formatted brand name)",
   "website": "string or null (domain without https://)",
   "category_id": "uuid of the best matching category or null",
   "is_existing": boolean,
@@ -87,8 +87,15 @@ Respond in JSON format:
 
   const result = JSON.parse(response.choices[0].message.content || '{}');
 
+  // Capitalize first letter of merchant name
+  const normalizeName = (name: string | null) => {
+    if (!name) return null;
+    const lower = name.toLowerCase().trim();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  };
+
   return {
-    merchant_name: result.merchant_name?.toLowerCase() || null,
+    merchant_name: normalizeName(result.merchant_name),
     is_new: !result.is_existing,
     confidence: result.confidence || 0,
     ...result,
