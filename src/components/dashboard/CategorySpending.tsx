@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import type { CategorySpending } from '@/types';
 
 interface CategorySpendingCardProps {
@@ -12,12 +12,15 @@ interface CategorySpendingCardProps {
 }
 
 export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
   const chartData = useMemo(
     () =>
-      spending.map((s) => ({
+      spending.map((s, index) => ({
         name: s.categoryName,
         y: s.amount,
         color: s.categoryColor,
+        index,
       })),
     [spending]
   );
@@ -26,28 +29,50 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
     chart: {
       type: 'pie',
       backgroundColor: 'transparent',
-      height: 300,
+      height: 280,
     },
     title: {
       text: undefined,
     },
     tooltip: {
-      pointFormat: '<b>{point.name}</b><br/>{point.y:.2f} PLN ({point.percentage:.1f}%)',
+      backgroundColor: 'white',
+      borderWidth: 0,
+      borderRadius: 8,
+      shadow: true,
+      style: {
+        fontSize: '13px',
+      },
+      pointFormat: '<b>{point.name}</b><br/>{point.y:,.2f} zł ({point.percentage:.1f}%)',
     },
     plotOptions: {
       pie: {
         allowPointSelect: true,
         cursor: 'pointer',
         dataLabels: {
-          enabled: true,
-          format: '<b>{point.name}</b>: {point.percentage:.1f}%',
-          style: {
-            fontSize: '11px',
-            fontWeight: '500',
-            textOutline: 'none',
-          },
+          enabled: false,
         },
         showInLegend: false,
+        states: {
+          hover: {
+            brightness: 0.1,
+            halo: {
+              size: 5,
+            },
+          },
+          inactive: {
+            opacity: 0.5,
+          },
+        },
+        point: {
+          events: {
+            mouseOver: function () {
+              setHoveredIndex((this.options as { index: number }).index);
+            },
+            mouseOut: function () {
+              setHoveredIndex(null);
+            },
+          },
+        },
       },
     },
     series: [
@@ -84,11 +109,20 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
         <HighchartsReact highcharts={Highcharts} options={options} />
 
         {/* Compact legend */}
-        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
-          {spending.map((item) => (
+        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5">
+          {spending.map((item, index) => (
             <div
               key={item.categoryId}
-              className="flex items-center justify-between py-1"
+              className={cn(
+                'flex items-center justify-between py-1.5 px-2 rounded-lg transition-all duration-150',
+                hoveredIndex === index
+                  ? 'bg-gray-100'
+                  : hoveredIndex !== null
+                  ? 'opacity-50'
+                  : 'hover:bg-gray-50'
+              )}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div
