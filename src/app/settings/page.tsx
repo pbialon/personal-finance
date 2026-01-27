@@ -531,18 +531,16 @@ function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Card className="border-red-200">
-        <CardHeader>
-          <CardTitle className="text-red-600 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Strefa zagrożenia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-red-50 rounded-lg border border-red-100">
+      <div className="rounded-xl border border-red-200 bg-red-50/50">
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-red-100">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <h3 className="font-semibold text-red-700">Strefa zagrożenia</h3>
+        </div>
+        <div className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
-              <p className="font-medium text-red-900">Usuń wszystkie transakcje</p>
-              <p className="text-sm text-red-600 mt-1">
+              <p className="font-medium text-gray-900">Usuń wszystkie transakcje</p>
+              <p className="text-sm text-red-600/80 mt-1">
                 Ta akcja jest nieodwracalna. Wszystkie transakcje zostaną trwale usunięte.
               </p>
             </div>
@@ -555,8 +553,8 @@ function SettingsContent() {
               Usuń wszystko
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Modal
         isOpen={showDeleteModal}
