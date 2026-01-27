@@ -45,7 +45,14 @@ export function StatCards({ stats }: StatCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {cards.map((card) => {
-        const isPositive = card.invertChange ? card.change < 0 : card.change > 0;
+        // Arrow direction based on actual change (up if positive, down if negative)
+        const isUp = card.change > 0;
+        // Color: for expenses (invertChange), rising is bad (red), falling is good (green)
+        // For income/savings, rising is good (green), falling is bad (red)
+        const isGood = card.invertChange ? card.change < 0 : card.change > 0;
+        const ArrowIcon = isUp ? TrendingUp : TrendingDown;
+        const changeColor = isGood ? 'text-green-600' : 'text-red-600';
+
         return (
           <Card key={card.title}>
             <CardContent className="pt-6">
@@ -67,16 +74,8 @@ export function StatCards({ stats }: StatCardsProps) {
               <div className="mt-2 flex items-center gap-1 text-sm">
                 {card.change !== 0 && (
                   <>
-                    {isPositive ? (
-                      <TrendingUp className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-red-500" />
-                    )}
-                    <span
-                      className={cn(
-                        isPositive ? 'text-green-600' : 'text-red-600'
-                      )}
-                    >
+                    <ArrowIcon className={cn('h-4 w-4', changeColor)} />
+                    <span className={changeColor}>
                       {Math.abs(card.change)}%
                     </span>
                     <span className="text-gray-500">vs poprzedni miesiąc</span>
