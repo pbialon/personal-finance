@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { MonthlyStats, CategorySpending, MonthlyTrend, BudgetProgress } from '@/types';
+import type {
+  MonthlyStats,
+  CategorySpending,
+  MonthlyTrend,
+  BudgetProgress,
+  FinancialHealthScore,
+  SpendingPatterns,
+  CategoryAnalysis,
+  TopSpenders,
+  YearOverview,
+} from '@/types';
 
 export function useMonthlyStats(month?: string) {
   const [stats, setStats] = useState<MonthlyStats | null>(null);
@@ -121,4 +131,177 @@ export function useBudgetProgress(month?: string) {
   }, [fetchProgress]);
 
   return { progress, loading, error, refresh: fetchProgress };
+}
+
+// New analytics hooks
+export function useFinancialHealth(startDate: string, endDate: string) {
+  const [data, setData] = useState<FinancialHealthScore | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: 'financial-health',
+        startDate,
+        endDate,
+      });
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch financial health');
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+export function useSpendingPatterns(startDate: string, endDate: string) {
+  const [data, setData] = useState<SpendingPatterns | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: 'spending-patterns',
+        startDate,
+        endDate,
+      });
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch spending patterns');
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+export function useCategoryAnalysis(startDate: string, endDate: string, categoryId?: string) {
+  const [data, setData] = useState<CategoryAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!categoryId) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: 'category-analysis',
+        startDate,
+        endDate,
+        categoryId,
+      });
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch category analysis');
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate, categoryId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+export function useTopSpenders(startDate: string, endDate: string) {
+  const [data, setData] = useState<TopSpenders | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: 'top-spenders',
+        startDate,
+        endDate,
+      });
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch top spenders');
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
+}
+
+export function useYearOverview(startDate: string, endDate: string) {
+  const [data, setData] = useState<YearOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        type: 'year-overview',
+        startDate,
+        endDate,
+      });
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch year overview');
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refresh: fetchData };
 }

@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getFirstDayOfMonth, getLastDayOfMonth, addMonths, calculatePercentageChange } from '@/lib/utils';
-import type { MonthlyStats, CategorySpending, MonthlyTrend, BudgetProgress } from '@/types';
+import type {
+  MonthlyStats,
+  CategorySpending,
+  MonthlyTrend,
+  BudgetProgress,
+  FinancialHealthScore,
+  SpendingPatterns,
+  CategoryAnalysis,
+  TopSpenders,
+  YearOverview,
+} from '@/types';
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -232,6 +242,444 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(progress);
+  }
+
+  // New analytics endpoints
+  const startDateParam = searchParams.get('startDate');
+  const endDateParam = searchParams.get('endDate');
+
+  if (type === 'financial-health' && startDateParam && endDateParam) {
+    const [transactionsRes, budgetsRes, savingsCategories] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select('amount, is_income, category_id, transaction_date')
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_ignored', false),
+      supabase
+        .from('budgets')
+        .select('planned_amount, category_id')
+        .gte('month', startDateParam)
+        .lte('month', endDateParam)
+        .eq('is_income', false),
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const transactions = transactionsRes.data || [];
+
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let totalSavings = 0;
+    const monthlyIncomes: Record<string, number> = {};
+
+    transactions.forEach((t) => {
+      const monthKey = t.transaction_date.substring(0, 7);
+      if (savingsIds.has(t.category_id)) {
+        if (!t.is_income) totalSavings += t.amount;
+      } else if (t.is_income) {
+        totalIncome += t.amount;
+        monthlyIncomes[monthKey] = (monthlyIncomes[monthKey] || 0) + t.amount;
+      } else {
+        totalExpenses += t.amount;
+      }
+    });
+
+    // Calculate income stability (coefficient of variation)
+    const incomeValues = Object.values(monthlyIncomes);
+    let incomeStabilityCV = 0;
+    if (incomeValues.length > 1) {
+      const avgIncome = incomeValues.reduce((a, b) => a + b, 0) / incomeValues.length;
+      const variance = incomeValues.reduce((sum, v) => sum + Math.pow(v - avgIncome, 2), 0) / incomeValues.length;
+      const stdDev = Math.sqrt(variance);
+      incomeStabilityCV = avgIncome > 0 ? (stdDev / avgIncome) * 100 : 0;
+    }
+
+    // Calculate budget adherence
+    const totalBudgeted = (budgetsRes.data || []).reduce((sum, b) => sum + b.planned_amount, 0);
+    const budgetAdherence = totalBudgeted > 0 ? (totalExpenses / totalBudgeted) * 100 : 100;
+
+    // Calculate scores
+    const savingsRate = totalIncome > 0 ? (totalSavings / totalIncome) * 100 : 0;
+    const expenseRatio = totalIncome > 0 ? (totalExpenses / totalIncome) * 100 : 100;
+
+    const savingsRateScore = Math.min(25, Math.round((savingsRate / 20) * 25));
+    const expenseRatioScore = expenseRatio <= 70 ? 25 : Math.max(0, Math.round((1 - (expenseRatio - 70) / 30) * 25));
+    const budgetAdherenceScore = budgetAdherence >= 90 && budgetAdherence <= 110 ? 25 : Math.max(0, 25 - Math.abs(budgetAdherence - 100) * 0.5);
+    const incomeStabilityScore = Math.max(0, 25 - incomeStabilityCV * 0.5);
+
+    const totalScore = Math.round(savingsRateScore + expenseRatioScore + budgetAdherenceScore + incomeStabilityScore);
+
+    const result: FinancialHealthScore = {
+      score: totalScore,
+      components: {
+        savingsRate: { value: savingsRate, score: savingsRateScore, target: 20 },
+        expenseRatio: { value: expenseRatio, score: expenseRatioScore, target: 70 },
+        budgetAdherence: { value: budgetAdherence, score: budgetAdherenceScore, target: 100 },
+        incomeStability: { value: incomeStabilityCV, score: incomeStabilityScore },
+      },
+    };
+
+    return NextResponse.json(result);
+  }
+
+  if (type === 'spending-patterns' && startDateParam && endDateParam) {
+    const [transactionsRes, categoriesRes, savingsCategories] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select('amount, category_id, transaction_date')
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      supabase
+        .from('categories')
+        .select('id, name, color')
+        .eq('is_savings', false),
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const transactions = (transactionsRes.data || []).filter(t => !savingsIds.has(t.category_id));
+    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c]));
+
+    const DAYS_PL = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const byDayOfWeek: { day: string; amount: number; count: number }[] = DAYS_PL.map((day) => ({
+      day,
+      amount: 0,
+      count: 0,
+    }));
+
+    const byDayOfMonth: { day: number; amount: number }[] = Array.from({ length: 31 }, (_, i) => ({
+      day: i + 1,
+      amount: 0,
+    }));
+
+    const categoryHeatmapData: Map<string, { color: string; days: number[] }> = new Map();
+
+    transactions.forEach((t) => {
+      const date = new Date(t.transaction_date + 'T00:00:00');
+      const dayOfWeek = date.getDay();
+      const dayOfMonth = date.getDate();
+
+      byDayOfWeek[dayOfWeek].amount += t.amount;
+      byDayOfWeek[dayOfWeek].count += 1;
+      byDayOfMonth[dayOfMonth - 1].amount += t.amount;
+
+      if (t.category_id) {
+        const cat = categoriesMap.get(t.category_id);
+        if (cat) {
+          if (!categoryHeatmapData.has(cat.name)) {
+            categoryHeatmapData.set(cat.name, { color: cat.color, days: [0, 0, 0, 0, 0, 0, 0] });
+          }
+          categoryHeatmapData.get(cat.name)!.days[dayOfWeek] += t.amount;
+        }
+      }
+    });
+
+    // Reorder days to start from Monday
+    const reorderedDays = [...byDayOfWeek.slice(1), byDayOfWeek[0]];
+
+    const categoryHeatmap = Array.from(categoryHeatmapData.entries())
+      .map(([category, data]) => ({
+        category,
+        color: data.color,
+        days: [...data.days.slice(1), data.days[0]], // Monday first
+      }))
+      .sort((a, b) => b.days.reduce((s, v) => s + v, 0) - a.days.reduce((s, v) => s + v, 0))
+      .slice(0, 8);
+
+    const result: SpendingPatterns = {
+      byDayOfWeek: reorderedDays,
+      byDayOfMonth,
+      categoryHeatmap,
+    };
+
+    return NextResponse.json(result);
+  }
+
+  if (type === 'category-analysis' && startDateParam && endDateParam) {
+    const categoryId = searchParams.get('categoryId');
+    if (!categoryId) {
+      return NextResponse.json({ error: 'categoryId is required' }, { status: 400 });
+    }
+
+    const [categoryRes, transactionsRes, allTransactionsRes] = await Promise.all([
+      supabase
+        .from('categories')
+        .select('id, name, color')
+        .eq('id', categoryId)
+        .single(),
+      supabase
+        .from('transactions')
+        .select('amount, transaction_date, counterparty_name, merchant:merchants(name, display_name)')
+        .eq('category_id', categoryId)
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      supabase
+        .from('transactions')
+        .select('amount')
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+    ]);
+
+    if (!categoryRes.data) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    const category = categoryRes.data;
+    const transactions = transactionsRes.data || [];
+    const allTransactions = allTransactionsRes.data || [];
+
+    const totalAll = allTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    // Monthly trend
+    const monthlyData: Record<string, number> = {};
+    const merchantData: Record<string, { amount: number; count: number }> = {};
+
+    transactions.forEach((t) => {
+      const monthKey = t.transaction_date.substring(0, 7);
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + t.amount;
+
+      const merchantObj = t.merchant as unknown as { name: string; display_name: string } | null;
+      const merchantName = merchantObj?.display_name || merchantObj?.name || t.counterparty_name || 'Nieznany';
+      if (!merchantData[merchantName]) {
+        merchantData[merchantName] = { amount: 0, count: 0 };
+      }
+      merchantData[merchantName].amount += t.amount;
+      merchantData[merchantName].count += 1;
+    });
+
+    const monthlyTrend = Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, amount]) => ({
+        month: new Date(month + '-01').toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }),
+        amount,
+      }));
+
+    const monthAmounts = Object.values(monthlyData);
+    const averageAmount = monthAmounts.length > 0 ? totalAmount / monthAmounts.length : 0;
+    const maxMonth = monthlyTrend.reduce((max, m) => m.amount > max.amount ? m : max, { month: '-', amount: 0 });
+    const minMonth = monthlyTrend.reduce((min, m) => m.amount < min.amount ? m : min, monthlyTrend[0] || { month: '-', amount: 0 });
+
+    const topMerchants = Object.entries(merchantData)
+      .map(([name, data]) => ({ name, amount: data.amount, count: data.count }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+
+    const result: CategoryAnalysis = {
+      categoryId: category.id,
+      categoryName: category.name,
+      categoryColor: category.color,
+      totalAmount,
+      averageAmount,
+      maxMonth,
+      minMonth,
+      percentOfTotal: totalAll > 0 ? (totalAmount / totalAll) * 100 : 0,
+      monthlyTrend,
+      topMerchants,
+    };
+
+    return NextResponse.json(result);
+  }
+
+  if (type === 'top-spenders' && startDateParam && endDateParam) {
+    const [transactionsRes, savingsCategories] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select('id, amount, transaction_date, counterparty_name, display_name, description, category_id, merchant:merchants(name, display_name), category:categories(name, color)')
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_income', false)
+        .eq('is_ignored', false)
+        .order('amount', { ascending: false }),
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const transactions = (transactionsRes.data || []).filter(t => !savingsIds.has(t.category_id));
+
+    // Top merchants
+    const merchantData: Record<string, { amount: number; count: number; categoryName?: string; categoryColor?: string }> = {};
+
+    transactions.forEach((t) => {
+      const merchantObj = t.merchant as unknown as { name: string; display_name: string } | null;
+      const merchantName = merchantObj?.display_name || merchantObj?.name || t.counterparty_name || 'Nieznany';
+      const cat = t.category as unknown as { name: string; color: string } | null;
+
+      if (!merchantData[merchantName]) {
+        merchantData[merchantName] = { amount: 0, count: 0, categoryName: cat?.name, categoryColor: cat?.color };
+      }
+      merchantData[merchantName].amount += t.amount;
+      merchantData[merchantName].count += 1;
+    });
+
+    const topMerchants = Object.entries(merchantData)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+
+    // Top transactions
+    const topTransactions = transactions.slice(0, 10).map((t) => {
+      const cat = t.category as unknown as { name: string; color: string } | null;
+      return {
+        id: t.id,
+        description: t.display_name || t.description || t.counterparty_name || 'Brak opisu',
+        amount: t.amount,
+        date: t.transaction_date,
+        categoryName: cat?.name,
+        categoryColor: cat?.color,
+      };
+    });
+
+    // Recurring vs one-time (simplified: >2 transactions from same merchant = recurring)
+    let recurring = 0;
+    let oneTime = 0;
+
+    Object.values(merchantData).forEach((data) => {
+      if (data.count > 2) {
+        recurring += data.amount;
+      } else {
+        oneTime += data.amount;
+      }
+    });
+
+    const result: TopSpenders = {
+      topMerchants,
+      topTransactions,
+      recurringVsOneTime: { recurring, oneTime },
+    };
+
+    return NextResponse.json(result);
+  }
+
+  if (type === 'year-overview' && startDateParam && endDateParam) {
+    const startYear = parseInt(startDateParam.substring(0, 4));
+    const prevYearStart = `${startYear - 1}-01-01`;
+    const prevYearEnd = `${startYear - 1}-12-31`;
+
+    const [currentRes, prevRes, savingsCategories, categoriesRes] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select('amount, is_income, category_id, transaction_date')
+        .gte('transaction_date', startDateParam)
+        .lte('transaction_date', endDateParam)
+        .eq('is_ignored', false),
+      supabase
+        .from('transactions')
+        .select('amount, is_income, category_id, transaction_date')
+        .gte('transaction_date', prevYearStart)
+        .lte('transaction_date', prevYearEnd)
+        .eq('is_ignored', false),
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+      supabase
+        .from('categories')
+        .select('id, name, color')
+        .eq('is_savings', false),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const categoriesMap = new Map((categoriesRes.data || []).map(c => [c.id, c]));
+
+    const processTransactions = (transactions: typeof currentRes.data) => {
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      let totalSavings = 0;
+      const monthlyData: Record<string, { income: number; expenses: number; savings: number }> = {};
+      const categoryTotals: Record<string, number> = {};
+
+      (transactions || []).forEach((t) => {
+        const monthKey = t.transaction_date.substring(0, 7);
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { income: 0, expenses: 0, savings: 0 };
+        }
+
+        if (savingsIds.has(t.category_id)) {
+          if (!t.is_income) {
+            totalSavings += t.amount;
+            monthlyData[monthKey].savings += t.amount;
+          }
+        } else if (t.is_income) {
+          totalIncome += t.amount;
+          monthlyData[monthKey].income += t.amount;
+        } else {
+          totalExpenses += t.amount;
+          monthlyData[monthKey].expenses += t.amount;
+          if (t.category_id) {
+            categoryTotals[t.category_id] = (categoryTotals[t.category_id] || 0) + t.amount;
+          }
+        }
+      });
+
+      return { totalIncome, totalExpenses, totalSavings, monthlyData, categoryTotals };
+    };
+
+    const current = processTransactions(currentRes.data);
+    const prev = processTransactions(prevRes.data);
+
+    const monthlyDataArray = Object.entries(current.monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month: new Date(month + '-01').toLocaleDateString('pl-PL', { month: 'short' }),
+        income: data.income,
+        expenses: data.expenses,
+        savings: data.savings,
+        savingsRate: data.income > 0 ? (data.savings / data.income) * 100 : 0,
+      }));
+
+    const yearComparison = prev.totalIncome > 0 || prev.totalExpenses > 0 ? {
+      prevYearIncome: prev.totalIncome,
+      prevYearExpenses: prev.totalExpenses,
+      prevYearSavings: prev.totalSavings,
+      incomeChange: calculatePercentageChange(current.totalIncome, prev.totalIncome),
+      expensesChange: calculatePercentageChange(current.totalExpenses, prev.totalExpenses),
+      savingsChange: calculatePercentageChange(current.totalSavings, prev.totalSavings),
+    } : undefined;
+
+    const categoryYoY = Array.from(categoriesMap.values())
+      .map((cat) => {
+        const currentAmount = current.categoryTotals[cat.id] || 0;
+        const prevAmount = prev.categoryTotals[cat.id] || 0;
+        return {
+          categoryName: cat.name,
+          categoryColor: cat.color,
+          currentYear: currentAmount,
+          prevYear: prevAmount,
+          change: calculatePercentageChange(currentAmount, prevAmount),
+        };
+      })
+      .filter((c) => c.currentYear > 0 || c.prevYear > 0)
+      .sort((a, b) => b.currentYear - a.currentYear)
+      .slice(0, 10);
+
+    const result: YearOverview = {
+      totalIncome: current.totalIncome,
+      totalExpenses: current.totalExpenses,
+      totalSavings: current.totalSavings,
+      netChange: current.totalIncome - current.totalExpenses - current.totalSavings,
+      monthlyData: monthlyDataArray,
+      yearComparison,
+      categoryYoY,
+    };
+
+    return NextResponse.json(result);
   }
 
   return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });

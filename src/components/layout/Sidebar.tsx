@@ -11,11 +11,13 @@ import {
   PiggyBank,
   Settings,
   Wallet,
+  BarChart3,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transakcje', href: '/transactions', icon: Receipt },
+  { name: 'Analityka', href: '/analytics', icon: BarChart3 },
   { name: 'Kategorie', href: '/categories', icon: Tags },
   { name: 'Kontrahenci', href: '/merchants', icon: Store },
   { name: 'Budżet', href: '/budget', icon: PiggyBank },

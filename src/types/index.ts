@@ -131,3 +131,97 @@ export interface BudgetProgress {
   actual: number;
   percentage: number;
 }
+
+// Analytics types
+export type TimePeriod = 'month' | 'quarter' | 'half-year' | 'year' | 'custom';
+
+export interface TimePeriodRange {
+  startDate: string;
+  endDate: string;
+  compareStartDate?: string;
+  compareEndDate?: string;
+}
+
+export interface FinancialHealthScore {
+  score: number;
+  components: {
+    savingsRate: { value: number; score: number; target: number };
+    expenseRatio: { value: number; score: number; target: number };
+    budgetAdherence: { value: number; score: number; target: number };
+    incomeStability: { value: number; score: number };
+  };
+}
+
+export interface SpendingPatterns {
+  byDayOfWeek: { day: string; amount: number; count: number }[];
+  byDayOfMonth: { day: number; amount: number }[];
+  categoryHeatmap: {
+    category: string;
+    color: string;
+    days: number[];
+  }[];
+}
+
+export interface CategoryAnalysis {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  totalAmount: number;
+  averageAmount: number;
+  maxMonth: { month: string; amount: number };
+  minMonth: { month: string; amount: number };
+  percentOfTotal: number;
+  monthlyTrend: { month: string; amount: number; prevYearAmount?: number }[];
+  topMerchants: { name: string; amount: number; count: number }[];
+}
+
+export interface TopSpenders {
+  topMerchants: {
+    name: string;
+    amount: number;
+    count: number;
+    categoryName?: string;
+    categoryColor?: string;
+  }[];
+  topTransactions: {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+    categoryName?: string;
+    categoryColor?: string;
+  }[];
+  recurringVsOneTime: {
+    recurring: number;
+    oneTime: number;
+  };
+}
+
+export interface YearOverview {
+  totalIncome: number;
+  totalExpenses: number;
+  totalSavings: number;
+  netChange: number;
+  monthlyData: {
+    month: string;
+    income: number;
+    expenses: number;
+    savings: number;
+    savingsRate: number;
+  }[];
+  yearComparison?: {
+    prevYearIncome: number;
+    prevYearExpenses: number;
+    prevYearSavings: number;
+    incomeChange: number;
+    expensesChange: number;
+    savingsChange: number;
+  };
+  categoryYoY: {
+    categoryName: string;
+    categoryColor: string;
+    currentYear: number;
+    prevYear: number;
+    change: number;
+  }[];
+}
