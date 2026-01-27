@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Store, Pencil, Trash2 } from 'lucide-react';
+import { X, Store, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { DynamicIcon } from '@/components/ui/DynamicIcon';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +23,7 @@ export function TransactionDetailSheet({
   onDelete,
 }: TransactionDetailSheetProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
 
   if (!transaction) return null;
 
@@ -37,6 +38,7 @@ export function TransactionDetailSheet({
 
   const handleCategorySelect = (categoryId: string) => {
     onCategoryChange(transaction.id, categoryId);
+    setIsEditingCategory(false);
   };
 
   const handleDelete = () => {
@@ -140,64 +142,115 @@ export function TransactionDetailSheet({
           </div>
         )}
 
-        {/* Category selection */}
+        {/* Category section */}
         <div className="px-6 py-4 border-b border-gray-100">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">
-            Kategoria
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {/* Uncategorized option */}
+          {!isEditingCategory ? (
+            /* Display current category with change button */
             <button
-              onClick={() => handleCategorySelect('')}
-              className={cn(
-                'px-3 py-2 rounded-full text-sm font-medium transition-colors',
-                !transaction.category_id
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              )}
+              onClick={() => setIsEditingCategory(true)}
+              className="w-full flex items-center justify-between hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg transition-colors"
             >
-              Bez kategorii
+              <div className="flex items-center gap-3">
+                {category ? (
+                  <>
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: category.color + '20' }}
+                    >
+                      {category.icon && (
+                        <DynamicIcon
+                          name={category.icon}
+                          className="w-4 h-4"
+                          style={{ color: category.color }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      {category.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Store className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      Bez kategorii
+                    </span>
+                  </>
+                )}
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
+          ) : (
+            /* Category selection mode */
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  Wybierz kategorię
+                </p>
+                <button
+                  onClick={() => setIsEditingCategory(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Anuluj
+                </button>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-hide">
+                {/* Uncategorized option */}
+                <button
+                  onClick={() => handleCategorySelect('')}
+                  className={cn(
+                    'px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0',
+                    !transaction.category_id
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  )}
+                >
+                  Bez kategorii
+                </button>
 
-            {/* Category options */}
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategorySelect(cat.id)}
-                className={cn(
-                  'px-3 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5',
-                  transaction.category_id === cat.id
-                    ? 'ring-2 ring-offset-2'
-                    : 'hover:opacity-80'
-                )}
-                style={{
-                  backgroundColor:
-                    transaction.category_id === cat.id
-                      ? cat.color
-                      : `${cat.color}15`,
-                  color:
-                    transaction.category_id === cat.id ? 'white' : cat.color,
-                  ...(transaction.category_id === cat.id
-                    ? { ['--tw-ring-color' as string]: cat.color }
-                    : {}),
-                }}
-              >
-                {cat.icon && (
-                  <DynamicIcon
-                    name={cat.icon}
-                    className="w-4 h-4"
+                {/* Category options */}
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.id)}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0',
+                      transaction.category_id === cat.id
+                        ? 'ring-2 ring-offset-2'
+                        : 'hover:opacity-80'
+                    )}
                     style={{
-                      color:
+                      backgroundColor:
                         transaction.category_id === cat.id
-                          ? 'white'
-                          : cat.color,
+                          ? cat.color
+                          : `${cat.color}15`,
+                      color:
+                        transaction.category_id === cat.id ? 'white' : cat.color,
+                      ...(transaction.category_id === cat.id
+                        ? { ['--tw-ring-color' as string]: cat.color }
+                        : {}),
                     }}
-                  />
-                )}
-                {cat.name}
-              </button>
-            ))}
-          </div>
+                  >
+                    {cat.icon && (
+                      <DynamicIcon
+                        name={cat.icon}
+                        className="w-4 h-4"
+                        style={{
+                          color:
+                            transaction.category_id === cat.id
+                              ? 'white'
+                              : cat.color,
+                        }}
+                      />
+                    )}
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Actions */}

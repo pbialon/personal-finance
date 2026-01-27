@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Receipt,
   Tags,
+  Store,
   PiggyBank,
   Settings,
   Wallet,
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Transakcje', href: '/transactions', icon: Receipt },
   { name: 'Kategorie', href: '/categories', icon: Tags },
+  { name: 'Kontrahenci', href: '/merchants', icon: Store },
   { name: 'Budżet', href: '/budget', icon: PiggyBank },
   { name: 'Ustawienia', href: '/settings', icon: Settings },
 ];
