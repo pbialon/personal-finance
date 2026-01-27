@@ -7,6 +7,7 @@ import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { BudgetProgressCard } from '@/components/dashboard/BudgetProgress';
 import { CategorySpendingCard } from '@/components/dashboard/CategorySpending';
 import { MonthlyTrendCard } from '@/components/dashboard/MonthlyTrendCard';
+import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useMonthlyStats, useCategorySpending, useMonthlyTrends, useBudgetProgress } from '@/hooks/useAnalytics';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const monthStr = getFirstDayOfMonth(currentMonth);
 
   const { stats, loading: statsLoading } = useMonthlyStats(monthStr);
@@ -45,7 +47,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Month Navigation */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
+        <div className="relative inline-flex items-center gap-1 bg-gray-100 rounded-full p-1">
           <button
             onClick={goToPreviousMonth}
             className="p-2 rounded-full hover:bg-white hover:shadow-sm transition-all text-gray-600 hover:text-gray-900"
@@ -54,8 +56,11 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={goToCurrentMonth}
-            className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white hover:shadow-sm transition-all min-w-[180px] justify-center"
+            onClick={() => setIsMonthPickerOpen(true)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white hover:shadow-sm transition-all min-w-[180px] justify-center',
+              isMonthPickerOpen && 'bg-white shadow-sm ring-2 ring-blue-500'
+            )}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
@@ -74,6 +79,14 @@ export default function Dashboard() {
           >
             <ChevronRight className="h-5 w-5" />
           </button>
+
+          <MonthPicker
+            value={currentMonth}
+            onChange={setCurrentMonth}
+            isOpen={isMonthPickerOpen}
+            onClose={() => setIsMonthPickerOpen(false)}
+            maxDate={new Date()}
+          />
         </div>
 
         {!isCurrentMonth && (

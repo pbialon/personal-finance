@@ -8,14 +8,13 @@ import {
   Receipt,
   Tags,
   PiggyBank,
-  Menu,
+  BarChart3,
 } from 'lucide-react';
-import { useState } from 'react';
 
 const mainNav = [
   { name: 'Start', href: '/', icon: LayoutDashboard },
   { name: 'Transakcje', href: '/transactions', icon: Receipt },
-  { name: 'Kategorie', href: '/categories', icon: Tags },
+  { name: 'Analityka', href: '/analytics', icon: BarChart3 },
   { name: 'Budżet', href: '/budget', icon: PiggyBank },
 ];
 

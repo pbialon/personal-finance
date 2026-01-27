@@ -157,7 +157,7 @@ export function MonthlyTrendCard({ trends }: MonthlyTrendCardProps) {
         <HighchartsReact highcharts={Highcharts} options={options} ref={chartRef} />
 
         {/* Custom legend */}
-        <div className="mt-2 flex justify-center gap-6">
+        <div className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-2">
           {SERIES_CONFIG.map((config, index) => (
             <div
               key={config.key}
