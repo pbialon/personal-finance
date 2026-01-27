@@ -56,7 +56,7 @@ export function Sidebar() {
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          'absolute top-20 -right-3 z-10',
+          'absolute top-5 -right-3 z-10',
           'w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm',
           'flex items-center justify-center',
           'text-gray-400 hover:text-gray-600 hover:bg-gray-50',
