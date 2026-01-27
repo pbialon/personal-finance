@@ -141,29 +141,34 @@ export function SummaryStep({
           <span className="text-sm font-medium text-gray-900 mb-3 block">
             Planowane wydatki
           </span>
-          <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto">
-            {expenses.filter(e => e.amount > 0).map((expense) => {
-              const cat = getCategory(expense.categoryId);
-              return (
-                <div
-                  key={expense.categoryId}
-                  className="flex items-center justify-between text-sm p-2 rounded"
-                  style={{ backgroundColor: `${cat?.color || '#9CA3AF'}10` }}
-                >
-                  <div className="flex items-center gap-1">
-                    <DynamicIcon
-                      name={cat?.icon || null}
-                      className="w-4 h-4"
-                      style={{ color: cat?.color }}
-                    />
-                    <span className="text-gray-700 truncate">
-                      {cat?.name || 'Nieznana'}
+          <div className="flex flex-col gap-1 max-h-[250px] overflow-y-auto">
+            {expenses
+              .filter(e => e.amount > 0)
+              .sort((a, b) => b.amount - a.amount)
+              .map((expense) => {
+                const cat = getCategory(expense.categoryId);
+                return (
+                  <div
+                    key={expense.categoryId}
+                    className="flex items-center justify-between text-sm py-2 px-3 rounded hover:bg-gray-50"
+                    style={{ backgroundColor: `${cat?.color || '#9CA3AF'}08` }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <DynamicIcon
+                        name={cat?.icon || null}
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{ color: cat?.color }}
+                      />
+                      <span className="text-gray-700 truncate">
+                        {cat?.name || 'Nieznana'}
+                      </span>
+                    </div>
+                    <span className="font-medium text-gray-900 flex-shrink-0 ml-4">
+                      {formatCurrency(expense.amount)}
                     </span>
                   </div>
-                  <span className="font-medium">{formatCurrency(expense.amount)}</span>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       )}
