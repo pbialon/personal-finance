@@ -28,6 +28,34 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const body = await request.json();
 
+  // Batch upsert dla wizarda
+  if (body.budgets && Array.isArray(body.budgets)) {
+    const { month, budgets } = body as {
+      month: string;
+      budgets: { category_id: string | null; planned_amount: number; is_income: boolean }[];
+    };
+
+    // Przygotuj dane do upsert
+    const upsertData = budgets.map((b) => ({
+      category_id: b.category_id,
+      month,
+      planned_amount: b.planned_amount,
+      is_income: b.is_income,
+    }));
+
+    const { data, error } = await supabase
+      .from('budgets')
+      .upsert(upsertData, { onConflict: 'category_id,month,is_income' })
+      .select('*, category:categories(*)');
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data, { status: 201 });
+  }
+
+  // Pojedynczy upsert (stara logika)
   const { data, error } = await supabase
     .from('budgets')
     .upsert(

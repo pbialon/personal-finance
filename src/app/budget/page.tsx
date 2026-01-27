@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { BudgetOverview } from '@/components/budget/BudgetOverview';
 import { BudgetForm } from '@/components/budget/BudgetForm';
+import { BudgetWizard } from '@/components/budget/BudgetWizard';
 import { useBudget } from '@/hooks/useBudget';
 import { useCategories } from '@/hooks/useCategories';
 import { useCategorySpending } from '@/hooks/useAnalytics';
@@ -17,11 +18,12 @@ export default function BudgetPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = getFirstDayOfMonth(currentMonth);
 
-  const { budgets, loading, addBudget, deleteBudget } = useBudget(monthStr);
+  const { budgets, loading, addBudget, saveBudgetPlan, deleteBudget } = useBudget(monthStr);
   const { categories } = useCategories();
   const { spending } = useCategorySpending(monthStr);
 
   const [showModal, setShowModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
   const goToPreviousMonth = () => setCurrentMonth((m) => addMonths(m, -1));
@@ -89,9 +91,13 @@ export default function BudgetPage() {
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
-          <Button onClick={() => setShowModal(true)}>
+          <Button variant="secondary" onClick={() => setShowModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Dodaj budżet
+          </Button>
+          <Button onClick={() => setShowWizard(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Zaplanuj miesiąc
           </Button>
         </div>
       </div>
@@ -124,6 +130,14 @@ export default function BudgetPage() {
           onCancel={handleClose}
         />
       </Modal>
+
+      <BudgetWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onSave={saveBudgetPlan}
+        categories={categories}
+        initialMonth={currentMonth}
+      />
     </div>
   );
 }

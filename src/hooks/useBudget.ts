@@ -14,6 +14,10 @@ interface UseBudgetResult {
     is_income: boolean;
     month: string;
   }) => Promise<void>;
+  saveBudgetPlan: (data: {
+    month: string;
+    budgets: { category_id: string | null; planned_amount: number; is_income: boolean }[];
+  }) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
 }
 
@@ -63,6 +67,21 @@ export function useBudget(month?: string): UseBudgetResult {
     await fetchBudgets();
   };
 
+  const saveBudgetPlan = async (data: {
+    month: string;
+    budgets: { category_id: string | null; planned_amount: number; is_income: boolean }[];
+  }) => {
+    const response = await fetch('/api/budget', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) throw new Error('Failed to save budget plan');
+
+    await fetchBudgets();
+  };
+
   const deleteBudget = async (id: string) => {
     const response = await fetch(`/api/budget?id=${id}`, {
       method: 'DELETE',
@@ -79,6 +98,7 @@ export function useBudget(month?: string): UseBudgetResult {
     error,
     refresh: fetchBudgets,
     addBudget,
+    saveBudgetPlan,
     deleteBudget,
   };
 }

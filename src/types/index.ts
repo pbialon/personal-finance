@@ -263,3 +263,33 @@ export interface ImportProgressEvent {
   errors: number;
   lastTransaction?: string;
 }
+
+// Budget Wizard types
+export interface WizardIncomeItem {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+export interface WizardExpenseItem {
+  categoryId: string;
+  amount: number;
+}
+
+export interface WizardState {
+  step: 1 | 2 | 3 | 4 | 5;
+  month: string;
+  copyFromPrevious: boolean;
+  incomes: WizardIncomeItem[];
+  fixedExpenses: WizardExpenseItem[];
+  categoryBudgets: WizardExpenseItem[];
+}
+
+export interface WizardBudgetPayload {
+  month: string;
+  budgets: {
+    category_id: string | null;
+    planned_amount: number;
+    is_income: boolean;
+  }[];
+}
