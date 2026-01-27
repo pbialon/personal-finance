@@ -35,6 +35,31 @@ export async function POST(request: NextRequest) {
       budgets: { category_id: string | null; planned_amount: number; is_income: boolean }[];
     };
 
+    // Usuń istniejące rekordy z category_id = NULL przed wstawieniem nowych
+    // (upsert z onConflict nie działa dla NULL, bo NULL != NULL w PostgreSQL)
+    const nullCategoryBudgets = budgets.filter((b) => b.category_id === null);
+    if (nullCategoryBudgets.length > 0) {
+      const incomeNulls = nullCategoryBudgets.filter((b) => b.is_income);
+      const expenseNulls = nullCategoryBudgets.filter((b) => !b.is_income);
+
+      if (incomeNulls.length > 0) {
+        await supabase
+          .from('budgets')
+          .delete()
+          .eq('month', month)
+          .is('category_id', null)
+          .eq('is_income', true);
+      }
+      if (expenseNulls.length > 0) {
+        await supabase
+          .from('budgets')
+          .delete()
+          .eq('month', month)
+          .is('category_id', null)
+          .eq('is_income', false);
+      }
+    }
+
     // Przygotuj dane do upsert
     const upsertData = budgets.map((b) => ({
       category_id: b.category_id,
