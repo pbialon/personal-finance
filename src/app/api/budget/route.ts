@@ -80,7 +80,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: 201 });
   }
 
-  // Pojedynczy upsert (stara logika)
+  // Pojedynczy upsert
+  // Dla category_id = NULL, usuń istniejący rekord przed wstawieniem
+  // (upsert z onConflict nie działa dla NULL, bo NULL != NULL w PostgreSQL)
+  if (body.category_id === null || body.category_id === undefined) {
+    await supabase
+      .from('budgets')
+      .delete()
+      .eq('month', body.month)
+      .is('category_id', null)
+      .eq('is_income', body.is_income || false);
+  }
+
   const { data, error } = await supabase
     .from('budgets')
     .upsert(
