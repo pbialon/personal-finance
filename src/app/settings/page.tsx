@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2 } from 'lucide-react';
+import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { Input } from '@/components/ui/Input';
 import type { BankConnection } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
 
@@ -34,6 +35,11 @@ function SettingsContent() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showBankModal, setShowBankModal] = useState(false);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [ignoredIbans, setIgnoredIbans] = useState<string[]>([]);
+  const [newIban, setNewIban] = useState('');
+  const [savingIbans, setSavingIbans] = useState(false);
 
   useEffect(() => {
     const success = searchParams.get('success');
@@ -65,7 +71,20 @@ function SettingsContent() {
       }
     };
 
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        if (data.ignored_ibans && Array.isArray(data.ignored_ibans)) {
+          setIgnoredIbans(data.ignored_ibans);
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      }
+    };
+
     fetchConnection();
+    fetchSettings();
   }, []);
 
   const handleConnect = async (bankId: string) => {
@@ -116,15 +135,85 @@ function SettingsContent() {
       } else if (data.error) {
         setMessage({ type: 'error', text: data.error });
       } else {
+        const parts = [`Zaimportowano ${data.imported} nowych transakcji`];
+        if (data.skipped > 0) parts.push(`pominięto ${data.skipped} duplikatów`);
+        if (data.filteredInternal > 0) parts.push(`${data.filteredInternal} transferów wewnętrznych`);
         setMessage({
           type: 'success',
-          text: `Zaimportowano ${data.imported} nowych transakcji (pominięto ${data.skipped} duplikatów)`,
+          text: parts.join(', '),
         });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Błąd podczas synchronizacji' });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const saveIgnoredIbans = async (ibans: string[]) => {
+    setSavingIbans(true);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'ignored_ibans', value: ibans }),
+      });
+      setIgnoredIbans(ibans);
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Błąd podczas zapisywania IBAN-ów' });
+    } finally {
+      setSavingIbans(false);
+    }
+  };
+
+  const handleAddIban = () => {
+    const trimmed = newIban.trim().toUpperCase().replace(/\s/g, '');
+    if (!trimmed) return;
+    if (ignoredIbans.includes(trimmed)) {
+      setMessage({ type: 'error', text: 'Ten IBAN jest już na liście' });
+      return;
+    }
+    saveIgnoredIbans([...ignoredIbans, trimmed]);
+    setNewIban('');
+  };
+
+  const handleRemoveIban = (iban: string) => {
+    saveIgnoredIbans(ignoredIbans.filter((i) => i !== iban));
+  };
+
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    setMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/csv', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        setMessage({ type: 'error', text: data.error });
+      } else {
+        setMessage({
+          type: 'success',
+          text: `Zaimportowano ${data.imported} transakcji (pominięto ${data.skipped} duplikatów)`,
+        });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Błąd podczas importu pliku CSV' });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -242,6 +331,91 @@ function SettingsContent() {
                 Połącz z bankiem
               </Button>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Import CSV</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-500">
+            Zaimportuj transakcje z pliku CSV z ING Banku. Format: eksport listy transakcji.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCsvImport}
+            className="hidden"
+          />
+          <Button
+            variant="secondary"
+            onClick={() => fileInputRef.current?.click()}
+            loading={importing}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {importing ? 'Importowanie...' : 'Wybierz plik CSV'}
+          </Button>
+          <p className="text-xs text-gray-400">
+            Obsługiwany format: ING Bank Śląski (separacja średnikiem, kodowanie Windows-1250)
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Własne konta (ignorowane)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-500 text-sm">
+            Transfery między tymi kontami nie będą importowane podczas synchronizacji.
+            Dodaj IBAN-y swoich innych kont ING.
+          </p>
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="PL00 0000 0000 0000 0000 0000 0000"
+              value={newIban}
+              onChange={(e) => setNewIban(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddIban()}
+              className="flex-1 font-mono text-sm"
+            />
+            <Button
+              variant="secondary"
+              onClick={handleAddIban}
+              disabled={!newIban.trim() || savingIbans}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {ignoredIbans.length > 0 ? (
+            <div className="space-y-2">
+              {ignoredIbans.map((iban) => (
+                <div
+                  key={iban}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    <span className="font-mono text-sm">{iban}</span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveIban(iban)}
+                    disabled={savingIbans}
+                    className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              Brak dodanych IBAN-ów
+            </p>
           )}
         </CardContent>
       </Card>

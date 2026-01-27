@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTransactions, mapTransaction } from '@/lib/enable-banking';
 import { categorizeNewTransaction } from '@/lib/categorization';
+import { getIgnoredIbans, isInternalTransfer } from '@/lib/settings';
 
 export const runtime = 'edge';
 export const preferredRegion = 'auto';
@@ -23,6 +24,9 @@ export async function GET(request: Request) {
     if (!connections || connections.length === 0) {
       return NextResponse.json({ message: 'No active connections' });
     }
+
+    // Get list of own IBANs to filter internal transfers
+    const ignoredIbans = await getIgnoredIbans();
 
     const results = [];
 
@@ -49,9 +53,16 @@ export async function GET(request: Request) {
         );
 
         let imported = 0;
+        let filteredInternal = 0;
 
         for (const tx of bankTransactions) {
           const mapped = mapTransaction(tx, connection.account_id!);
+
+          // Skip internal transfers between own accounts
+          if (isInternalTransfer(mapped.counterparty_account, ignoredIbans)) {
+            filteredInternal++;
+            continue;
+          }
 
           const { data: existing } = await supabase
             .from('transactions')
@@ -88,6 +99,7 @@ export async function GET(request: Request) {
           connectionId: connection.id,
           status: 'success',
           imported,
+          filteredInternal,
         });
       } catch (error) {
         results.push({
