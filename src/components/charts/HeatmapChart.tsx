@@ -48,7 +48,7 @@ export function HeatmapChart({ data }: HeatmapChartProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-visible pt-8 pr-4">
       <div className="inline-flex min-w-full">
         {/* Category labels column */}
         <div className="flex flex-col shrink-0">
