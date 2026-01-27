@@ -15,7 +15,7 @@ export function GaugeChart({ value, max = 100, color = '#3b82f6' }: GaugeChartPr
 
   return (
     <div className="relative w-full h-[160px] flex items-center justify-center">
-      <svg viewBox="0 0 200 120" className="w-full max-w-[280px]">
+      <svg viewBox="0 0 200 130" className="w-full max-w-[280px]">
         {/* Background arc */}
         <path
           d="M 20 100 A 80 80 0 0 1 180 100"
@@ -48,8 +48,8 @@ export function GaugeChart({ value, max = 100, color = '#3b82f6' }: GaugeChartPr
           <circle cx="100" cy="100" r="8" fill="#374151" />
         </g>
         {/* Min/Max labels */}
-        <text x="20" y="118" textAnchor="middle" className="text-xs fill-gray-400">0</text>
-        <text x="180" y="118" textAnchor="middle" className="text-xs fill-gray-400">{max}</text>
+        <text x="20" y="125" textAnchor="middle" className="text-xs fill-gray-400">0</text>
+        <text x="180" y="125" textAnchor="middle" className="text-xs fill-gray-400">{max}</text>
       </svg>
     </div>
   );
