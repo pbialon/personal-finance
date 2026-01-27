@@ -21,12 +21,14 @@ interface CategoryFormProps {
 const colorOptions = [
   '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#ef4444',
   '#8b5cf6', '#06b6d4', '#10b981', '#f97316', '#6366f1',
+  '#fb7185', '#a855f7',
 ];
 
 const iconOptions = [
   'utensils', 'car', 'home', 'gamepad-2', 'heart-pulse',
   'shopping-bag', 'repeat', 'piggy-bank', 'banknote', 'circle-help',
-  'plane', 'book', 'gift', 'briefcase', 'music',
+  'plane', 'smartphone', 'gift', 'briefcase', 'music',
+  'flower-2', 'sparkles', 'scissors', 'graduation-cap', 'dumbbell',
 ];
 
 export function CategoryForm({ category, onSubmit, onCancel }: CategoryFormProps) {
