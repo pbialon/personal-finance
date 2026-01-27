@@ -12,6 +12,7 @@ import type { TimePeriodRange } from '@/types';
 
 export default function AnalyticsPage() {
   const now = new Date();
+  const [compare, setCompare] = useState(false);
   const [range, setRange] = useState<TimePeriodRange>({
     startDate: `${now.getFullYear()}-01-01`,
     endDate: `${now.getFullYear()}-12-31`,
@@ -23,25 +24,34 @@ export default function AnalyticsPage() {
     setRange(newRange);
   }, []);
 
+  const handleCompareToggle = useCallback(() => {
+    setCompare(prev => !prev);
+  }, []);
+
+  // Only include compare dates if compare is enabled
+  const effectiveRange: TimePeriodRange = compare
+    ? range
+    : { startDate: range.startDate, endDate: range.endDate };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Analityka</h1>
-        <TimePeriodSelector onPeriodChange={handlePeriodChange} />
+        <TimePeriodSelector onPeriodChange={handlePeriodChange} showCompare={false} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <FinancialHealthCard range={range} />
-        <YearOverviewCard range={range} />
+        <FinancialHealthCard range={effectiveRange} compare={compare} onCompareToggle={handleCompareToggle} />
+        <YearOverviewCard range={effectiveRange} />
       </div>
 
       <GoalsCard />
 
-      <SpendingPatternsCard range={range} />
+      <SpendingPatternsCard range={effectiveRange} />
 
-      <CategoryAnalysisCard range={range} />
+      <CategoryAnalysisCard range={effectiveRange} />
 
-      <TopSpendersCard range={range} />
+      <TopSpendersCard range={effectiveRange} />
     </div>
   );
 }

@@ -3,12 +3,14 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { GaugeChart } from '@/components/charts/GaugeChart';
 import { useFinancialHealth } from '@/hooks/useAnalytics';
-import { Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Minus, GitCompare } from 'lucide-react';
 import type { TimePeriodRange } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface FinancialHealthCardProps {
   range: TimePeriodRange;
+  compare?: boolean;
+  onCompareToggle?: () => void;
 }
 
 function getScoreColor(score: number): string {
@@ -93,7 +95,7 @@ function ComponentRow({
   );
 }
 
-export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
+export function FinancialHealthCard({ range, compare = false, onCompareToggle }: FinancialHealthCardProps) {
   const { data, loading, error } = useFinancialHealth(
     range.startDate,
     range.endDate,
@@ -101,12 +103,35 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
     range.compareEndDate
   );
 
+  const renderHeader = () => (
+    <CardHeader>
+      <div className="flex items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          Kondycja finansowa
+          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+        </CardTitle>
+        {onCompareToggle && (
+          <button
+            onClick={onCompareToggle}
+            className={cn(
+              'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+              compare
+                ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            )}
+          >
+            <GitCompare className="h-4 w-4" />
+            <span className="hidden sm:inline">Porównaj</span>
+          </button>
+        )}
+      </div>
+    </CardHeader>
+  );
+
   if (error && !data) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Kondycja finansowa</CardTitle>
-        </CardHeader>
+        {renderHeader()}
         <CardContent>
           <p className="text-sm text-gray-500">Nie udało się załadować danych</p>
         </CardContent>
@@ -117,9 +142,7 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
   if (loading && !data) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Kondycja finansowa</CardTitle>
-        </CardHeader>
+        {renderHeader()}
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </CardContent>
@@ -134,12 +157,7 @@ export function FinancialHealthCard({ range }: FinancialHealthCardProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Kondycja finansowa
-          {loading && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
-        </CardTitle>
-      </CardHeader>
+      {renderHeader()}
       <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
         <div className="flex flex-col items-center mb-6">
           <GaugeChart value={data.score} max={100} color={scoreColor} />
