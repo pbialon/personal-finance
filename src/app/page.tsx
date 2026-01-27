@@ -51,6 +51,11 @@ export default function Dashboard() {
       data: trends.map((t) => t.expenses),
       color: '#ef4444',
     },
+    {
+      name: 'Oszczędności netto',
+      data: trends.map((t) => t.netSavings),
+      color: '#3b82f6',
+    },
   ];
 
   const totalPlanned = progress.reduce((sum, b) => sum + b.planned, 0);

@@ -8,6 +8,18 @@ export interface Category {
   created_at: string;
 }
 
+export interface Merchant {
+  id: string;
+  name: string;
+  display_name: string;
+  icon_url: string | null;
+  category_id: string | null;
+  website: string | null;
+  created_at: string;
+  updated_at: string;
+  category?: Category;
+}
+
 export interface Transaction {
   id: string;
   external_id: string | null;
@@ -22,12 +34,14 @@ export interface Transaction {
   counterparty_name: string | null;
   category_id: string | null;
   category_source: 'ai' | 'user' | 'rule' | null;
+  merchant_id: string | null;
   is_manual: boolean;
   is_ignored: boolean;
   is_income: boolean;
   created_at: string;
   updated_at: string;
   category?: Category;
+  merchant?: Merchant;
 }
 
 export interface CategorizationRule {
@@ -81,10 +95,14 @@ export interface TransactionFilters {
 export interface MonthlyStats {
   income: number;
   expenses: number;
-  savings: number;
+  savingsIn: number;      // wpłaty na oszczędności (odkładam)
+  savingsOut: number;     // wypłaty z oszczędności (odbieram)
+  netSavings: number;     // bilans netto (savingsIn - savingsOut)
   incomeChange: number;
   expensesChange: number;
-  savingsChange: number;
+  savingsInChange: number;
+  savingsOutChange: number;
+  netSavingsChange: number;
 }
 
 export interface CategorySpending {
@@ -99,7 +117,9 @@ export interface MonthlyTrend {
   month: string;
   income: number;
   expenses: number;
-  savings: number;
+  savingsIn: number;
+  savingsOut: number;
+  netSavings: number;
 }
 
 export interface BudgetProgress {

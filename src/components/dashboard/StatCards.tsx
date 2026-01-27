@@ -18,6 +18,7 @@ export function StatCards({ stats }: StatCardsProps) {
       icon: Wallet,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
+      prefix: '+',
     },
     {
       title: 'Wydatki',
@@ -27,14 +28,17 @@ export function StatCards({ stats }: StatCardsProps) {
       color: 'text-red-600',
       bgColor: 'bg-red-50',
       invertChange: true,
+      prefix: '-',
     },
     {
       title: 'Oszczędności',
-      value: stats.savings,
-      change: stats.savingsChange,
+      value: stats.netSavings,
+      change: stats.netSavingsChange,
       icon: PiggyBank,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
+      prefix: stats.netSavings >= 0 ? '+' : '',
+      secondaryInfo: `+${formatCurrency(stats.savingsIn)} wpłaty / -${formatCurrency(stats.savingsOut)} wypłaty`,
     },
   ];
 
@@ -49,9 +53,12 @@ export function StatCards({ stats }: StatCardsProps) {
                 <div>
                   <p className="text-sm text-gray-500">{card.title}</p>
                   <p className={cn('text-2xl font-bold', card.color)}>
-                    {card.title === 'Wydatki' ? '-' : '+'}
-                    {formatCurrency(card.value)}
+                    {card.prefix}
+                    {formatCurrency(Math.abs(card.value))}
                   </p>
+                  {card.secondaryInfo && (
+                    <p className="text-xs text-gray-400 mt-1">{card.secondaryInfo}</p>
+                  )}
                 </div>
                 <div className={cn('p-3 rounded-xl', card.bgColor)}>
                   <card.icon className={cn('h-6 w-6', card.color)} />

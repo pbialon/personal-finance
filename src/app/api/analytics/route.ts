@@ -42,11 +42,16 @@ export async function GET(request: NextRequest) {
     const calcStats = (transactions: typeof currentData.data) => {
       let income = 0;
       let expenses = 0;
-      let savings = 0;
+      let savingsIn = 0;   // wpłaty NA oszczędności (odkładam)
+      let savingsOut = 0;  // wypłaty Z oszczędności (odbieram)
 
       (transactions || []).forEach((t) => {
         if (savingsIds.has(t.category_id)) {
-          savings += t.amount;
+          if (t.is_income) {
+            savingsOut += t.amount;  // zwrot z oszczędności
+          } else {
+            savingsIn += t.amount;   // wpłata na oszczędności
+          }
         } else if (t.is_income) {
           income += t.amount;
         } else {
@@ -54,7 +59,13 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      return { income, expenses, savings };
+      return {
+        income,
+        expenses,
+        savingsIn,
+        savingsOut,
+        netSavings: savingsIn - savingsOut,
+      };
     };
 
     const current = calcStats(currentData.data);
@@ -63,10 +74,14 @@ export async function GET(request: NextRequest) {
     const stats: MonthlyStats = {
       income: current.income,
       expenses: current.expenses,
-      savings: current.savings,
+      savingsIn: current.savingsIn,
+      savingsOut: current.savingsOut,
+      netSavings: current.netSavings,
       incomeChange: calculatePercentageChange(current.income, prev.income),
       expensesChange: calculatePercentageChange(current.expenses, prev.expenses),
-      savingsChange: calculatePercentageChange(current.savings, prev.savings),
+      savingsInChange: calculatePercentageChange(current.savingsIn, prev.savingsIn),
+      savingsOutChange: calculatePercentageChange(current.savingsOut, prev.savingsOut),
+      netSavingsChange: calculatePercentageChange(current.netSavings, prev.netSavings),
     };
 
     return NextResponse.json(stats);
@@ -149,11 +164,16 @@ export async function GET(request: NextRequest) {
 
         let income = 0;
         let expenses = 0;
-        let savings = 0;
+        let savingsIn = 0;
+        let savingsOut = 0;
 
         (data || []).forEach((t) => {
           if (savingsIds.has(t.category_id)) {
-            savings += t.amount;
+            if (t.is_income) {
+              savingsOut += t.amount;
+            } else {
+              savingsIn += t.amount;
+            }
           } else if (t.is_income) {
             income += t.amount;
           } else {
@@ -165,7 +185,9 @@ export async function GET(request: NextRequest) {
           month: m.label,
           income,
           expenses,
-          savings,
+          savingsIn,
+          savingsOut,
+          netSavings: savingsIn - savingsOut,
         };
       })
     );
