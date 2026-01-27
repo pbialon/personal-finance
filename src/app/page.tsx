@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { StatCards } from '@/components/dashboard/StatCards';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { BudgetProgressCard } from '@/components/dashboard/BudgetProgress';
-import { PieChart } from '@/components/charts/PieChart';
+import { CategorySpendingCard } from '@/components/dashboard/CategorySpending';
 import { ColumnChart } from '@/components/charts/ColumnChart';
 import { useMonthlyStats, useCategorySpending, useMonthlyTrends, useBudgetProgress } from '@/hooks/useAnalytics';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -32,12 +32,6 @@ export default function Dashboard() {
   const goToPreviousMonth = () => setCurrentMonth((m) => addMonths(m, -1));
   const goToNextMonth = () => setCurrentMonth((m) => addMonths(m, 1));
   const goToCurrentMonth = () => setCurrentMonth(new Date());
-
-  const pieData = spending.map((s) => ({
-    name: s.categoryName,
-    y: s.amount,
-    color: s.categoryColor,
-  }));
 
   const columnCategories = trends.map((t) => t.month);
   const columnSeries = [
@@ -91,18 +85,7 @@ export default function Dashboard() {
           {stats && <StatCards stats={stats} />}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Wydatki per kategoria</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pieData.length > 0 ? (
-                  <PieChart data={pieData} />
-                ) : (
-                  <p className="text-center text-gray-500 py-8">Brak danych</p>
-                )}
-              </CardContent>
-            </Card>
+            <CategorySpendingCard spending={spending} />
 
             <Card>
               <CardHeader>
