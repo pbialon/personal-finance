@@ -295,6 +295,7 @@ export interface CategoryForecast {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  categoryIcon: string | null;
   currentSpent: number;
   projectedTotal: number;
   confidence: 'high' | 'medium' | 'low';

@@ -2,6 +2,7 @@
 
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
+import { DynamicIcon } from '../ui/DynamicIcon';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useForecast } from '@/hooks/useAnalytics';
 
@@ -148,10 +149,23 @@ export function ForecastCard({ month }: ForecastCardProps) {
               return (
                 <div key={cat.categoryId} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: cat.categoryColor }}
-                    />
+                    {cat.categoryIcon ? (
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: cat.categoryColor + '20' }}
+                      >
+                        <DynamicIcon
+                          name={cat.categoryIcon}
+                          className="w-3.5 h-3.5"
+                          style={{ color: cat.categoryColor }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-6 h-6 rounded-md flex-shrink-0"
+                        style={{ backgroundColor: cat.categoryColor + '20' }}
+                      />
+                    )}
                     <span className="text-sm text-gray-700 truncate">
                       {cat.categoryName}
                     </span>

@@ -717,7 +717,7 @@ export async function GET(request: NextRequest) {
       // All categories
       supabase
         .from('categories')
-        .select('id, name, color, is_savings'),
+        .select('id, name, color, icon, is_savings'),
       // Previous month transactions
       supabase
         .from('transactions')
@@ -752,7 +752,7 @@ export async function GET(request: NextRequest) {
     const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
     const categoriesMap = new Map((categoriesRes.data || [])
       .filter(c => !c.is_savings)
-      .map(c => [c.id, { name: c.name, color: c.color }]));
+      .map(c => [c.id, { name: c.name, color: c.color, icon: c.icon as string | null }]));
 
     // Calculate current spending per category
     const currentSpending: Record<string, number> = {};
@@ -803,6 +803,7 @@ export async function GET(request: NextRequest) {
           categoryId: catId,
           categoryName: cat?.name || 'Bez kategorii',
           categoryColor: cat?.color || '#6b7280',
+          categoryIcon: cat?.icon || null,
           currentSpent: currentSpending[catId] || 0,
           budget: budgets[catId] || null,
           lastMonthSpent: prevMonthSpending[catId] || null,

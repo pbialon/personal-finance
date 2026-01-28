@@ -2,6 +2,7 @@ export interface CategoryForecast {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  categoryIcon: string | null;
   currentSpent: number;
   projectedTotal: number;
   confidence: 'high' | 'medium' | 'low';
@@ -24,6 +25,7 @@ interface CategoryData {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  categoryIcon: string | null;
   currentSpent: number;
   budget: number | null;
   lastMonthSpent: number | null;
@@ -125,6 +127,7 @@ export function forecastMonthlySpending(input: ForecastInput): MonthlyForecast {
       categoryId: cat.categoryId,
       categoryName: cat.categoryName,
       categoryColor: cat.categoryColor,
+      categoryIcon: cat.categoryIcon,
       currentSpent: cat.currentSpent,
       projectedTotal: Math.round(projected * 100) / 100,
       confidence,
