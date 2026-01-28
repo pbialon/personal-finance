@@ -56,7 +56,12 @@ export function RecentTransactions({
   <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Ostatnie transakcje</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <div className="p-1.5 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg">
+            <Receipt className="w-4 h-4 text-white" />
+          </div>
+          Ostatnie transakcje
+        </CardTitle>
         <Link
           href="/transactions"
           className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"

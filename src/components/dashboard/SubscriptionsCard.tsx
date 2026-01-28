@@ -34,8 +34,10 @@ export function SubscriptionsCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg">
+              <RefreshCw className="w-4 h-4 text-white" />
+            </div>
             Subskrypcje
           </CardTitle>
         </CardHeader>
@@ -52,8 +54,10 @@ export function SubscriptionsCard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg">
+              <RefreshCw className="w-4 h-4 text-white" />
+            </div>
             Subskrypcje
           </CardTitle>
         </CardHeader>
@@ -70,8 +74,10 @@ export function SubscriptionsCard() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg">
+              <RefreshCw className="w-4 h-4 text-white" />
+            </div>
             Subskrypcje
           </CardTitle>
           <span className="text-sm font-semibold text-gray-900">
