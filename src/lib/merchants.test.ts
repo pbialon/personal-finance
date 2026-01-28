@@ -80,10 +80,8 @@ describe('extractBrandName', () => {
 
   it('handles ZPM GROT style company names without quotes', () => {
     const result = extractBrandName('Z.P.M. "GROT" Sp. z o.o WARSZAWA');
-    // Should extract something without quotes
-    expect(result).not.toContain('"');
-    // Could be 'grot', 'z', 'p', 'm', or any first significant word
-    expect(typeof result === 'string' || result === null).toBe(true);
+    // Should extract "grot" without quotes
+    expect(result).toBe('grot');
   });
 
   it('extracts McDonald\'s correctly', () => {

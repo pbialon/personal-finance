@@ -183,7 +183,7 @@ export function extractBrandName(counterpartyName: string): string | null {
   // Split into words
   const words = normalized.split(/[\s\-_.,]+/).filter(w => w.length >= 2);
 
-  // PRIORITY 1: Check ALL words for known brands first
+  // PRIORITY 1: Check ALL words for exact known brand match first
   // This ensures "JMP S.A. BIEDRONKA" matches "biedronka" not "jmp"
   for (const word of words) {
     if (BRAND_MAPPINGS[word]) {
@@ -191,9 +191,12 @@ export function extractBrandName(counterpartyName: string): string | null {
     }
   }
 
-  // Check if any word contains a known brand
+  // Check if any word contains a known brand (but only if word is longer)
+  // Avoid matching "sp" to "spotify" - require minimum 4 chars for substring match
   for (const word of words) {
+    if (word.length < 4) continue; // Skip short words for substring matching
     for (const [key, brand] of Object.entries(BRAND_MAPPINGS)) {
+      if (key.length < 4) continue; // Skip short keys
       if (word.includes(key) || key.includes(word)) {
         return brand;
       }
