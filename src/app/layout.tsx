@@ -7,6 +7,7 @@ import { MainContent } from "@/components/layout/MainContent";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { ImportProvider } from "@/components/import/ImportContext";
 import { ImportProgressPanel } from "@/components/import/ImportProgressModal";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -26,14 +27,16 @@ export default function RootLayout({
   return (
     <html lang="pl">
       <body className={`${inter.variable} antialiased`}>
-        <ImportProvider>
-          <SidebarProvider>
-            <Sidebar />
-            <MainContent>{children}</MainContent>
-            <MobileNav />
-          </SidebarProvider>
-          <ImportProgressPanel />
-        </ImportProvider>
+        <ToastProvider>
+          <ImportProvider>
+            <SidebarProvider>
+              <Sidebar />
+              <MainContent>{children}</MainContent>
+              <MobileNav />
+            </SidebarProvider>
+            <ImportProgressPanel />
+          </ImportProvider>
+        </ToastProvider>
       </body>
     </html>
   );
