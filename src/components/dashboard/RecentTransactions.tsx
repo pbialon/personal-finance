@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Store } from 'lucide-react';
+import { ArrowRight, Store, Receipt } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { DynamicIcon } from '../ui/DynamicIcon';
 import { CategoryBadge } from '../ui/CategoryBadge';

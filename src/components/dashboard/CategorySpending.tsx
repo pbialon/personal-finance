@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
+import { PieChart } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { CategorySpending } from '@/types';
@@ -117,7 +118,12 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Wydatki per kategoria</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
+              <PieChart className="w-4 h-4 text-white" />
+            </div>
+            Wydatki per kategoria
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-gray-500 py-8">Brak danych</p>
@@ -129,7 +135,12 @@ export function CategorySpendingCard({ spending }: CategorySpendingCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Wydatki per kategoria</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
+              <PieChart className="w-4 h-4 text-white" />
+            </div>
+            Wydatki per kategoria
+          </CardTitle>
       </CardHeader>
       <CardContent>
         <HighchartsReact highcharts={Highcharts} options={options} ref={chartRef} />

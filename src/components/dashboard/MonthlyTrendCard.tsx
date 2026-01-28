@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
+import { BarChart3 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { formatCurrency, cn } from '@/lib/utils';
 
@@ -139,7 +140,12 @@ export function MonthlyTrendCard({ trends }: MonthlyTrendCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Trend miesięczny</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+              <BarChart3 className="w-4 h-4 text-white" />
+            </div>
+            Trend miesięczny
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-gray-500 py-8">Brak danych</p>
@@ -151,7 +157,12 @@ export function MonthlyTrendCard({ trends }: MonthlyTrendCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Trend miesięczny</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+            <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg">
+              <BarChart3 className="w-4 h-4 text-white" />
+            </div>
+            Trend miesięczny
+          </CardTitle>
       </CardHeader>
       <CardContent>
         <HighchartsReact highcharts={Highcharts} options={options} ref={chartRef} />
