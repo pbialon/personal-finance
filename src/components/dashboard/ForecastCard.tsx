@@ -1,22 +1,10 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { DynamicIcon } from '../ui/DynamicIcon';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useForecast } from '@/hooks/useAnalytics';
-
-const trendIcons = {
-  up: TrendingUp,
-  down: TrendingDown,
-  stable: Minus,
-};
-
-const trendColors = {
-  up: 'text-red-500',
-  down: 'text-green-500',
-  stable: 'text-gray-400',
-};
 
 interface ForecastCardProps {
   month?: string;
@@ -141,7 +129,6 @@ export function ForecastCard({ month }: ForecastCardProps) {
               Top prognozy
             </p>
             {forecast.categories.slice(0, 4).map((cat) => {
-              const TrendIcon = trendIcons[cat.trend];
               const budgetStatus = cat.vsBudget !== null
                 ? cat.vsBudget > 100 ? 'over' : cat.vsBudget > 90 ? 'near' : 'ok'
                 : null;
@@ -169,7 +156,6 @@ export function ForecastCard({ month }: ForecastCardProps) {
                     <span className="text-sm text-gray-700 truncate">
                       {cat.categoryName}
                     </span>
-                    <TrendIcon className={cn('w-3 h-3 flex-shrink-0', trendColors[cat.trend])} />
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-sm font-medium text-gray-900 tabular-nums">
