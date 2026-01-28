@@ -76,10 +76,16 @@ describe('extractBrandName', () => {
     expect(result === null || result === 'piekarni' || result === 'oskro').toBe(true);
   });
 
-  it('handles ZPM GROT style company names', () => {
+  it('handles ZPM GROT style company names without quotes', () => {
     const result = extractBrandName('Z.P.M. "GROT" Sp. z o.o WARSZAWA');
-    // This is an obscure company name, could extract "grot" or return any first word
-    expect(typeof result === 'string' || result === null).toBe(true);
+    // Should extract "grot" without quotes
+    expect(result).not.toContain('"');
+    expect(result === 'grot' || result === 'z.p.m' || result === null).toBe(true);
+  });
+
+  it('extracts McDonald\'s correctly', () => {
+    expect(extractBrandName('MCDONALDS 51 WARSZAWA POL')).toBe("mcdonald's");
+    expect(extractBrandName('McDonald\'s Restaurant')).toBe("mcdonald's");
   });
 });
 

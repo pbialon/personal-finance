@@ -151,7 +151,8 @@ export function extractBrandName(counterpartyName: string): string | null {
     }
   }
 
-  let normalized = inputLower;
+  // Remove quotes and clean up
+  let normalized = inputLower.replace(/["'„"]/g, '').trim();
 
   // Strip known suffixes
   for (const pattern of STRIP_PATTERNS) {
