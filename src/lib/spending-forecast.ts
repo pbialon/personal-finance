@@ -144,10 +144,6 @@ function calculateProjection(
   const projectedMax = ratios.min > 0 ? currentSpent / ratios.min : currentSpent;
   const projected = ratios.avg > 0 ? currentSpent / ratios.avg : currentSpent;
 
-  // Cap max projection at 3x current spending to avoid unrealistic projections early in month
-  const cappedMax = Math.min(projectedMax, currentSpent * 3);
-  const cappedMin = Math.max(projectedMin, currentSpent);
-
   // Determine confidence based on ratio spread and day of month
   const ratioSpread = ratios.max - ratios.min;
   let confidence: 'high' | 'medium' | 'low';
@@ -161,22 +157,32 @@ function calculateProjection(
   }
 
   // If historical average exists, blend it with ratio-based projection
+  let finalProjected = projected;
   if (historicalAvg !== null && historicalAvg > 0) {
     const blendFactor = Math.min(dayOfMonth / daysInMonth, 0.8); // More weight to current pace as month progresses
-    const blendedProjected = projected * blendFactor + historicalAvg * (1 - blendFactor);
+    finalProjected = projected * blendFactor + historicalAvg * (1 - blendFactor);
+  }
 
-    return {
-      projectedMin: Math.round(cappedMin * 100) / 100,
-      projectedMax: Math.round(cappedMax * 100) / 100,
-      projected: Math.round(blendedProjected * 100) / 100,
-      confidence,
-    };
+  // Cap max projection at 3x current spending to avoid unrealistic projections early in month
+  let cappedMax = Math.min(projectedMax, currentSpent * 3);
+  let cappedMin = Math.max(projectedMin, currentSpent);
+
+  // Ensure minimum spread based on confidence level
+  // low = ±20%, medium = ±15%, high = ±10%
+  const minSpreadPercent = confidence === 'low' ? 0.2 : confidence === 'medium' ? 0.15 : 0.1;
+  const minSpreadMin = finalProjected * (1 - minSpreadPercent);
+  const minSpreadMax = finalProjected * (1 + minSpreadPercent);
+
+  // Apply minimum spread if calculated range is too narrow
+  if (cappedMax - cappedMin < finalProjected * minSpreadPercent * 2) {
+    cappedMin = Math.max(currentSpent, minSpreadMin);
+    cappedMax = Math.max(cappedMin + finalProjected * minSpreadPercent, minSpreadMax);
   }
 
   return {
     projectedMin: Math.round(cappedMin * 100) / 100,
     projectedMax: Math.round(cappedMax * 100) / 100,
-    projected: Math.round(projected * 100) / 100,
+    projected: Math.round(finalProjected * 100) / 100,
     confidence,
   };
 }

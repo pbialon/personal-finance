@@ -14,6 +14,13 @@ import type {
   MonthlyForecast,
 } from '@/types';
 
+// Daily spending type for sparkline chart
+export interface DailySpendingData {
+  day: number;
+  spent: number;
+  projected: number;
+}
+
 // Simple in-memory cache for analytics data
 const cache = {
   stats: new Map<string, MonthlyStats>(),
@@ -21,6 +28,7 @@ const cache = {
   trends: new Map<string, MonthlyTrend[]>(),
   progress: new Map<string, BudgetProgress[]>(),
   forecast: new Map<string, MonthlyForecast>(),
+  dailySpending: new Map<string, DailySpendingData[]>(),
 };
 
 export function useMonthlyStats(month?: string) {
@@ -234,6 +242,48 @@ export function useForecast(month?: string) {
   return { forecast, loading, error, refresh };
 }
 
+export function useDailySpending(month?: string) {
+  const cacheKey = month || 'current';
+  const [dailySpending, setDailySpending] = useState<DailySpendingData[]>(() => cache.dailySpending.get(cacheKey) || []);
+  const [loading, setLoading] = useState(!cache.dailySpending.has(cacheKey));
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDailySpending = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    if (!forceRefresh && cache.dailySpending.has(key)) {
+      setDailySpending(cache.dailySpending.get(key)!);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ type: 'daily-spending' });
+      if (month) params.append('month', month);
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch daily spending');
+
+      const data = await response.json();
+      cache.dailySpending.set(key, data);
+      setDailySpending(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [month]);
+
+  useEffect(() => {
+    fetchDailySpending();
+  }, [fetchDailySpending]);
+
+  const refresh = useCallback(() => fetchDailySpending(true), [fetchDailySpending]);
+
+  return { dailySpending, loading, error, refresh };
+}
+
 // Extended cache for date-range analytics
 const rangeCache = {
   financialHealth: new Map<string, FinancialHealthScore>(),
@@ -250,6 +300,7 @@ export function clearAnalyticsCache() {
   cache.trends.clear();
   cache.progress.clear();
   cache.forecast.clear();
+  cache.dailySpending.clear();
   rangeCache.financialHealth.clear();
   rangeCache.spendingPatterns.clear();
   rangeCache.categoryAnalysis.clear();

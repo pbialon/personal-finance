@@ -698,6 +698,95 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   }
 
+  if (type === 'daily-spending') {
+    // Get current month daily spending data for sparkline chart
+    const [transactionsRes, historicalRes, savingsCategories] = await Promise.all([
+      // Current month transactions with dates
+      supabase
+        .from('transactions')
+        .select('amount, transaction_date, category_id')
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      // Historical data for projection (last 6 months)
+      supabase
+        .from('transactions')
+        .select('amount, transaction_date, category_id')
+        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -6)))
+        .lt('transaction_date', startDate)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      // Savings categories to exclude
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const transactions = (transactionsRes.data || []).filter(t => !savingsIds.has(t.category_id));
+    const historicalTransactions = (historicalRes.data || []).filter(t => !savingsIds.has(t.category_id));
+
+    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const currentDay = new Date().getDate();
+
+    // Calculate actual spending per day
+    const dailySpent: Record<number, number> = {};
+    transactions.forEach(t => {
+      const day = parseInt(t.transaction_date.slice(8, 10));
+      dailySpent[day] = (dailySpent[day] || 0) + t.amount;
+    });
+
+    // Calculate average daily spending from historical data for projection
+    const historicalByMonth: Record<string, Record<number, number>> = {};
+    historicalTransactions.forEach(t => {
+      const monthKey = t.transaction_date.slice(0, 7);
+      const day = parseInt(t.transaction_date.slice(8, 10));
+      if (!historicalByMonth[monthKey]) {
+        historicalByMonth[monthKey] = {};
+      }
+      historicalByMonth[monthKey][day] = (historicalByMonth[monthKey][day] || 0) + t.amount;
+    });
+
+    // Calculate average daily pattern from historical months
+    const avgDailyPattern: Record<number, number> = {};
+    const monthCount = Object.keys(historicalByMonth).length;
+
+    if (monthCount > 0) {
+      for (let day = 1; day <= 31; day++) {
+        let total = 0;
+        let count = 0;
+        Object.values(historicalByMonth).forEach(monthData => {
+          if (monthData[day] !== undefined) {
+            total += monthData[day];
+            count++;
+          }
+        });
+        avgDailyPattern[day] = count > 0 ? total / count : 0;
+      }
+    } else {
+      // Fallback: use current month's average daily spending
+      const totalSpent = Object.values(dailySpent).reduce((sum, v) => sum + v, 0);
+      const avgDaily = currentDay > 0 ? totalSpent / currentDay : 0;
+      for (let day = 1; day <= 31; day++) {
+        avgDailyPattern[day] = avgDaily;
+      }
+    }
+
+    // Build daily spending data
+    const dailySpendingData = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      dailySpendingData.push({
+        day,
+        spent: dailySpent[day] || 0,
+        projected: avgDailyPattern[day] || 0,
+      });
+    }
+
+    return NextResponse.json(dailySpendingData);
+  }
+
   if (type === 'forecast') {
     // Get current month data
     const [transactionsRes, budgetsRes, categoriesRes, prevMonthRes, historicalRes, savingsCategories, incomeRes] = await Promise.all([
