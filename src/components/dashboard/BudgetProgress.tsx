@@ -111,7 +111,7 @@ export function BudgetProgressCard({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
@@ -122,7 +122,7 @@ export function BudgetProgressCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent>
         {/* Total budget summary */}
         <div className="flex items-start justify-between pb-5 mb-5 border-b border-gray-100">
           <div className="space-y-1">

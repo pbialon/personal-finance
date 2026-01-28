@@ -244,7 +244,7 @@ export function ForecastCard({ month }: ForecastCardProps) {
   if (loading) {
     return (
       <Card className="overflow-hidden">
-        <CardHeader className="pb-2">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
               <TrendingUp className="w-4 h-4 text-white" />
@@ -264,7 +264,7 @@ export function ForecastCard({ month }: ForecastCardProps) {
   if (!forecast) {
     return (
       <Card className="overflow-hidden">
-        <CardHeader className="pb-2">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
               <TrendingUp className="w-4 h-4 text-white" />
@@ -303,7 +303,7 @@ export function ForecastCard({ month }: ForecastCardProps) {
   return (
     <Card className="overflow-hidden">
       {/* Header */}
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
