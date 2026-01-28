@@ -321,7 +321,7 @@ export function ForecastCard({ month }: ForecastCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent>
         {/* Main forecast display */}
         <div className="flex items-start justify-between pb-5 mb-5 border-b border-gray-100">
           <div className="space-y-1">
