@@ -119,12 +119,13 @@ export default function BudgetPage() {
         isOpen={showModal}
         onClose={handleClose}
         title={editingBudget ? 'Edytuj budżet' : 'Dodaj budżet'}
-        size="md"
+        size="sm"
       >
         <BudgetForm
           budget={editingBudget || undefined}
           categories={categories}
           month={monthStr}
+          actualSpending={editingBudget ? actualSpending[editingBudget.category_id || 'total'] || 0 : undefined}
           onSubmit={handleSubmit}
           onDelete={editingBudget ? handleDelete : undefined}
           onCancel={handleClose}
