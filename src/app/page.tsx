@@ -118,8 +118,8 @@ export default function Dashboard() {
             <MonthlyTrendCard trends={trends} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            <ForecastCard month={monthStr} />
+          <div className={`grid grid-cols-1 ${isCurrentMonth ? 'lg:grid-cols-2' : ''} gap-6 mt-6`}>
+            {isCurrentMonth && <ForecastCard month={monthStr} />}
             <SubscriptionsCard />
           </div>
 

@@ -230,12 +230,13 @@ export async function GET(request: NextRequest) {
     });
 
     const progress: BudgetProgress[] = (budgetsRes.data || []).map((b) => {
-      const cat = b.category as { id: string; name: string; color: string } | null;
+      const cat = b.category as { id: string; name: string; color: string; icon: string | null } | null;
       const actual = spending[b.category_id || 'total'] || 0;
       return {
         categoryId: b.category_id || 'total',
         categoryName: cat?.name || 'Ogółem',
         categoryColor: cat?.color || '#3b82f6',
+        categoryIcon: cat?.icon || null,
         planned: b.planned_amount,
         actual,
         percentage: b.planned_amount > 0 ? Math.round((actual / b.planned_amount) * 100) : 0,
