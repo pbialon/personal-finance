@@ -248,9 +248,24 @@ export function findBestMerchantMatch(
   const brand = extractBrandName(counterpartyName);
   if (!brand) return null;
 
-  // Try exact match first
+  const brandLower = brand.toLowerCase();
+
+  // Try exact match first (case-insensitive)
   for (const merchant of existingMerchants) {
-    if (merchant.name === brand) {
+    const merchantNameLower = merchant.name.toLowerCase();
+    if (merchantNameLower === brandLower) {
+      return merchant;
+    }
+    // Also check if brand is contained in merchant name or vice versa
+    if (merchantNameLower.includes(brandLower) || brandLower.includes(merchantNameLower)) {
+      return merchant;
+    }
+  }
+
+  // Try matching brand against extracted brand from existing merchant names
+  for (const merchant of existingMerchants) {
+    const existingBrand = extractBrandName(merchant.name);
+    if (existingBrand && existingBrand === brandLower) {
       return merchant;
     }
   }
@@ -260,7 +275,8 @@ export function findBestMerchantMatch(
   let bestScore = threshold;
 
   for (const merchant of existingMerchants) {
-    const score = calculateSimilarity(brand, merchant.name);
+    const merchantLower = merchant.name.toLowerCase();
+    const score = calculateSimilarity(brandLower, merchantLower);
     if (score > bestScore) {
       bestScore = score;
       bestMatch = merchant;

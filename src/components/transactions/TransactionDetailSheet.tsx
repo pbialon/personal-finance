@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Store, Trash2, ChevronRight, ExternalLink, Pencil, Check } from 'lucide-react';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
@@ -29,6 +29,19 @@ export function TransactionDetailSheet({
   const [isEditingCategory, setIsEditingCategory] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState('');
+
+  useEffect(() => {
+    if (!transaction) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [transaction, onClose]);
 
   if (!transaction) return null;
 

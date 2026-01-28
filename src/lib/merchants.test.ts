@@ -109,4 +109,35 @@ describe('findBestMerchantMatch', () => {
   it('returns null for unknown merchants', () => {
     expect(findBestMerchantMatch('UNKNOWN SHOP XYZ', existingMerchants)).toBeNull();
   });
+
+  // Tests for case-insensitive matching (real database scenario)
+  describe('case-insensitive matching', () => {
+    const realMerchants = [
+      { id: '1', name: 'Biedronka' },
+      { id: '2', name: 'BOLT.EU' },
+      { id: '3', name: 'CANAL+' },
+      { id: '4', name: 'Lidl' },  // Capital L
+      { id: '5', name: 'Netflix' },  // Capital N
+    ];
+
+    it('matches LIDL to Lidl (case insensitive)', () => {
+      expect(findBestMerchantMatch('LIDL FORT SLUZEW WARSZAWA POL', realMerchants)?.id).toBe('4');
+    });
+
+    it('matches Netflix.com to Netflix', () => {
+      expect(findBestMerchantMatch('Netflix.com Los Gatos NLD', realMerchants)?.id).toBe('5');
+    });
+
+    it('matches CANAL+ variations', () => {
+      expect(findBestMerchantMatch('CANAL+ warszawa POL', realMerchants)?.id).toBe('3');
+    });
+
+    it('matches BOLT to BOLT.EU', () => {
+      expect(findBestMerchantMatch('BOLT OPERATIONS OU', realMerchants)?.id).toBe('2');
+    });
+
+    it('matches Biedronka variations', () => {
+      expect(findBestMerchantMatch('BIEDRONKA 1234 KRAKOW', realMerchants)?.id).toBe('1');
+    });
+  });
 });
