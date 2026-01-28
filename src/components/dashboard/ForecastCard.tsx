@@ -421,20 +421,32 @@ export function ForecastCard({ month }: ForecastCardProps) {
           </div>
         )}
 
-        {/* Alerts */}
+        {/* Alerts - compact chips */}
         {forecast.alerts.length > 0 && (
-          <div className="mb-4 p-3 bg-amber-50/80 border border-amber-200/50 rounded-xl">
-            <div className="flex items-start gap-2.5">
-              <div className="p-1 bg-amber-100 rounded-lg mt-0.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-              </div>
-              <div className="space-y-1 flex-1">
-                {forecast.alerts.slice(0, 3).map((alert, index) => (
-                  <p key={index} className="text-xs text-amber-800 leading-relaxed">
-                    {alert}
-                  </p>
-                ))}
-              </div>
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-xs font-medium text-amber-600">
+                {forecast.alerts.length} {forecast.alerts.length === 1 ? 'alert' : 'alerty'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {forecast.alerts.slice(0, 3).map((alert, index) => {
+                // Extract category name and amount from alert
+                const match = alert.match(/^(.+?) może przekroczyć budżet o ~(\d+)/);
+                const categoryName = match ? match[1] : alert.split(' ')[0];
+                const amount = match ? match[2] : '';
+
+                return (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700"
+                  >
+                    <span className="font-medium">{categoryName}</span>
+                    {amount && <span className="text-amber-500">+{amount} zł</span>}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
