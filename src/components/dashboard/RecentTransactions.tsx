@@ -1,23 +1,59 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Store } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { DynamicIcon } from '../ui/DynamicIcon';
 import { CategoryBadge } from '../ui/CategoryBadge';
+import { TransactionDetailSheet } from '../transactions/TransactionDetailSheet';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { Transaction, Category } from '@/types';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
   categories: Category[];
+  onCategoryChange?: (transactionId: string, categoryId: string) => void;
+  onDescriptionChange?: (transactionId: string, description: string) => void;
+  onDelete?: (transactionId: string) => void;
 }
 
-export function RecentTransactions({ transactions, categories }: RecentTransactionsProps) {
+export function RecentTransactions({
+  transactions,
+  categories,
+  onCategoryChange,
+  onDescriptionChange,
+  onDelete,
+}: RecentTransactionsProps) {
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
   const getCategoryById = (id: string | null) =>
     categories.find((c) => c.id === id);
 
+  const handleCategoryChange = (transactionId: string, categoryId: string) => {
+    onCategoryChange?.(transactionId, categoryId);
+    if (selectedTransaction?.id === transactionId) {
+      const updatedCategory = categories.find((c) => c.id === categoryId) || null;
+      setSelectedTransaction({
+        ...selectedTransaction,
+        category_id: categoryId || null,
+        category: updatedCategory || undefined,
+      });
+    }
+  };
+
+  const handleDescriptionChange = (transactionId: string, description: string) => {
+    onDescriptionChange?.(transactionId, description);
+    if (selectedTransaction?.id === transactionId) {
+      setSelectedTransaction({
+        ...selectedTransaction,
+        description,
+      });
+    }
+  };
+
   return (
+  <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Ostatnie transakcje</CardTitle>
@@ -52,10 +88,10 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
               const showSubtitle = subtitle && subtitle !== displayName;
 
               return (
-                <Link
+                <button
                   key={transaction.id}
-                  href={`/transactions/${transaction.id}`}
-                  className="flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition-colors"
+                  onClick={() => setSelectedTransaction(transaction)}
+                  className="w-full flex items-center gap-4 py-4 px-6 hover:bg-gray-50 transition-colors text-left"
                 >
                   {/* Icon */}
                   <div className="flex-shrink-0">
@@ -108,12 +144,22 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
                     {amount > 0 && '+'}
                     {formatCurrency(amount)}
                   </span>
-                </Link>
+                </button>
               );
             })}
           </div>
         )}
       </CardContent>
     </Card>
+
+    <TransactionDetailSheet
+      transaction={selectedTransaction}
+      categories={categories}
+      onClose={() => setSelectedTransaction(null)}
+      onCategoryChange={handleCategoryChange}
+      onDescriptionChange={handleDescriptionChange}
+      onDelete={onDelete}
+    />
+  </>
   );
 }

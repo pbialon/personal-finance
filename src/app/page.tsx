@@ -23,7 +23,7 @@ export default function Dashboard() {
   const { spending, loading: spendingLoading } = useCategorySpending(monthStr);
   const { trends, loading: trendsLoading } = useMonthlyTrends(monthStr);
   const { progress, loading: progressLoading } = useBudgetProgress(monthStr);
-  const { transactions } = useTransactions({
+  const { transactions, updateCategory, updateDescription, deleteTransaction } = useTransactions({
     startDate: getFirstDayOfMonth(currentMonth),
     endDate: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0],
   });
@@ -128,6 +128,9 @@ export default function Dashboard() {
             <RecentTransactions
               transactions={transactions.slice(0, 5)}
               categories={categories}
+              onCategoryChange={updateCategory}
+              onDescriptionChange={updateDescription}
+              onDelete={deleteTransaction}
             />
           </div>
         </div>
