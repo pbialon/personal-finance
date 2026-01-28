@@ -7,6 +7,8 @@ import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { BudgetProgressCard } from '@/components/dashboard/BudgetProgress';
 import { CategorySpendingCard } from '@/components/dashboard/CategorySpending';
 import { MonthlyTrendCard } from '@/components/dashboard/MonthlyTrendCard';
+import { SubscriptionsCard } from '@/components/dashboard/SubscriptionsCard';
+import { ForecastCard } from '@/components/dashboard/ForecastCard';
 import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useMonthlyStats, useCategorySpending, useMonthlyTrends, useBudgetProgress } from '@/hooks/useAnalytics';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -114,6 +116,11 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             <CategorySpendingCard spending={spending} />
             <MonthlyTrendCard trends={trends} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <ForecastCard month={monthStr} />
+            <SubscriptionsCard />
           </div>
 
           <div className="mt-6">

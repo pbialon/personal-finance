@@ -11,6 +11,7 @@ import type {
   CategoryAnalysis,
   TopSpenders,
   YearOverview,
+  MonthlyForecast,
 } from '@/types';
 
 // Simple in-memory cache for analytics data
@@ -19,6 +20,7 @@ const cache = {
   spending: new Map<string, CategorySpending[]>(),
   trends: new Map<string, MonthlyTrend[]>(),
   progress: new Map<string, BudgetProgress[]>(),
+  forecast: new Map<string, MonthlyForecast>(),
 };
 
 export function useMonthlyStats(month?: string) {
@@ -190,6 +192,48 @@ export function useBudgetProgress(month?: string) {
   return { progress, loading, error, refresh };
 }
 
+export function useForecast(month?: string) {
+  const cacheKey = month || 'current';
+  const [forecast, setForecast] = useState<MonthlyForecast | null>(() => cache.forecast.get(cacheKey) || null);
+  const [loading, setLoading] = useState(!cache.forecast.has(cacheKey));
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchForecast = useCallback(async (forceRefresh = false) => {
+    const key = month || 'current';
+
+    if (!forceRefresh && cache.forecast.has(key)) {
+      setForecast(cache.forecast.get(key)!);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ type: 'forecast' });
+      if (month) params.append('month', month);
+
+      const response = await fetch(`/api/analytics?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch forecast');
+
+      const data = await response.json();
+      cache.forecast.set(key, data);
+      setForecast(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [month]);
+
+  useEffect(() => {
+    fetchForecast();
+  }, [fetchForecast]);
+
+  const refresh = useCallback(() => fetchForecast(true), [fetchForecast]);
+
+  return { forecast, loading, error, refresh };
+}
+
 // Extended cache for date-range analytics
 const rangeCache = {
   financialHealth: new Map<string, FinancialHealthScore>(),
@@ -205,6 +249,7 @@ export function clearAnalyticsCache() {
   cache.spending.clear();
   cache.trends.clear();
   cache.progress.clear();
+  cache.forecast.clear();
   rangeCache.financialHealth.clear();
   rangeCache.spendingPatterns.clear();
   rangeCache.categoryAnalysis.clear();

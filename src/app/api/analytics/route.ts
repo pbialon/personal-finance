@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getFirstDayOfMonth, getLastDayOfMonth, addMonths, calculatePercentageChange } from '@/lib/utils';
+import { forecastMonthlySpending, type MonthlyForecast } from '@/lib/spending-forecast';
 import type {
   MonthlyStats,
   CategorySpending,
@@ -694,6 +695,134 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(result);
+  }
+
+  if (type === 'forecast') {
+    // Get current month data
+    const [transactionsRes, budgetsRes, categoriesRes, prevMonthRes, historicalRes, savingsCategories, incomeRes] = await Promise.all([
+      // Current month transactions
+      supabase
+        .from('transactions')
+        .select('amount, category_id')
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      // Current month budgets
+      supabase
+        .from('budgets')
+        .select('category_id, planned_amount')
+        .eq('month', startDate)
+        .eq('is_income', false),
+      // All categories
+      supabase
+        .from('categories')
+        .select('id, name, color, is_savings'),
+      // Previous month transactions
+      supabase
+        .from('transactions')
+        .select('amount, category_id')
+        .gte('transaction_date', prevStartDate)
+        .lte('transaction_date', prevEndDate)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      // Last 3 months for historical average (excluding current month)
+      supabase
+        .from('transactions')
+        .select('amount, category_id, transaction_date')
+        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -3)))
+        .lt('transaction_date', startDate)
+        .eq('is_income', false)
+        .eq('is_ignored', false),
+      // Savings categories
+      supabase
+        .from('categories')
+        .select('id')
+        .eq('is_savings', true),
+      // Current month income
+      supabase
+        .from('transactions')
+        .select('amount')
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+        .eq('is_income', true)
+        .eq('is_ignored', false),
+    ]);
+
+    const savingsIds = new Set(savingsCategories.data?.map(c => c.id) || []);
+    const categoriesMap = new Map((categoriesRes.data || [])
+      .filter(c => !c.is_savings)
+      .map(c => [c.id, { name: c.name, color: c.color }]));
+
+    // Calculate current spending per category
+    const currentSpending: Record<string, number> = {};
+    (transactionsRes.data || []).forEach(t => {
+      if (savingsIds.has(t.category_id)) return;
+      const catId = t.category_id || 'uncategorized';
+      currentSpending[catId] = (currentSpending[catId] || 0) + t.amount;
+    });
+
+    // Budgets per category
+    const budgets: Record<string, number> = {};
+    (budgetsRes.data || []).forEach(b => {
+      budgets[b.category_id || 'uncategorized'] = b.planned_amount;
+    });
+
+    // Previous month spending per category
+    const prevMonthSpending: Record<string, number> = {};
+    (prevMonthRes.data || []).forEach(t => {
+      if (savingsIds.has(t.category_id)) return;
+      const catId = t.category_id || 'uncategorized';
+      prevMonthSpending[catId] = (prevMonthSpending[catId] || 0) + t.amount;
+    });
+
+    // Historical average per category (last 3 months)
+    const historicalTotals: Record<string, number> = {};
+    (historicalRes.data || []).forEach(t => {
+      if (savingsIds.has(t.category_id)) return;
+      const catId = t.category_id || 'uncategorized';
+      historicalTotals[catId] = (historicalTotals[catId] || 0) + t.amount;
+    });
+    const historicalAvg: Record<string, number> = {};
+    Object.keys(historicalTotals).forEach(catId => {
+      historicalAvg[catId] = historicalTotals[catId] / 3;
+    });
+
+    // Build category data
+    const allCategoryIds = new Set([
+      ...Object.keys(currentSpending),
+      ...Object.keys(budgets),
+      ...categoriesMap.keys(),
+    ]);
+
+    const categoryData = Array.from(allCategoryIds)
+      .filter(catId => catId !== 'uncategorized' || currentSpending[catId] > 0)
+      .map(catId => {
+        const cat = categoriesMap.get(catId);
+        return {
+          categoryId: catId,
+          categoryName: cat?.name || 'Bez kategorii',
+          categoryColor: cat?.color || '#6b7280',
+          currentSpent: currentSpending[catId] || 0,
+          budget: budgets[catId] || null,
+          lastMonthSpent: prevMonthSpending[catId] || null,
+          historicalAvg: historicalAvg[catId] || null,
+        };
+      })
+      .filter(c => c.currentSpent > 0 || c.budget !== null);
+
+    // Calculate total income and budget
+    const totalIncome = (incomeRes.data || []).reduce((sum, t) => sum + t.amount, 0);
+    const totalBudget = Object.values(budgets).reduce((sum, b) => sum + b, 0);
+
+    const forecast = forecastMonthlySpending({
+      categories: categoryData,
+      totalIncome,
+      totalBudget,
+      currentDate: new Date(),
+    });
+
+    return NextResponse.json(forecast);
   }
 
   return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });

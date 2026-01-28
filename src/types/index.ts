@@ -290,6 +290,29 @@ export interface ImportProgressEvent {
   lastTransaction?: string;
 }
 
+// Forecast types
+export interface CategoryForecast {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  currentSpent: number;
+  projectedTotal: number;
+  confidence: 'high' | 'medium' | 'low';
+  trend: 'up' | 'down' | 'stable';
+  vsLastMonth: number;
+  vsBudget: number | null;
+}
+
+export interface MonthlyForecast {
+  totalProjected: number;
+  totalBudget: number;
+  projectedSavings: number;
+  categories: CategoryForecast[];
+  alerts: string[];
+  daysRemaining: number;
+  percentMonthComplete: number;
+}
+
 // Budget Wizard types
 export interface WizardIncomeItem {
   id: string;
