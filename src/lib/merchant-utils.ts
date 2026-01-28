@@ -180,27 +180,30 @@ export function extractBrandName(counterpartyName: string): string | null {
     return 'canal+';
   }
 
-  // Split into words and find the brand
+  // Split into words
   const words = normalized.split(/[\s\-_.,]+/).filter(w => w.length >= 2);
 
-  // Skip common prefixes
+  // PRIORITY 1: Check ALL words for known brands first
+  // This ensures "JMP S.A. BIEDRONKA" matches "biedronka" not "jmp"
   for (const word of words) {
-    if (SKIP_PREFIXES.has(word)) continue;
-    if (word.length < 3) continue;
-
-    // Check if this word maps to a known brand
     if (BRAND_MAPPINGS[word]) {
       return BRAND_MAPPINGS[word];
     }
+  }
 
-    // Check if any known brand contains this word or vice versa
+  // Check if any word contains a known brand
+  for (const word of words) {
     for (const [key, brand] of Object.entries(BRAND_MAPPINGS)) {
       if (word.includes(key) || key.includes(word)) {
         return brand;
       }
     }
+  }
 
-    // First significant word is likely the brand
+  // PRIORITY 2: No known brand found - return first significant word
+  for (const word of words) {
+    if (SKIP_PREFIXES.has(word)) continue;
+    if (word.length < 3) continue;
     return word;
   }
 
