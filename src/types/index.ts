@@ -297,7 +297,9 @@ export interface CategoryForecast {
   categoryColor: string;
   categoryIcon: string | null;
   currentSpent: number;
-  projectedTotal: number;
+  projectedMin: number;
+  projectedMax: number;
+  projectedTotal: number; // średnia (dla kompatybilności)
   confidence: 'high' | 'medium' | 'low';
   trend: 'up' | 'down' | 'stable';
   vsLastMonth: number;
@@ -305,7 +307,9 @@ export interface CategoryForecast {
 }
 
 export interface MonthlyForecast {
-  totalProjected: number;
+  totalProjectedMin: number;
+  totalProjectedMax: number;
+  totalProjected: number; // średnia (dla kompatybilności)
   totalBudget: number;
   projectedSavings: number;
   categories: CategoryForecast[];

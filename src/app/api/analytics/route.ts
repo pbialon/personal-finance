@@ -726,11 +726,11 @@ export async function GET(request: NextRequest) {
         .lte('transaction_date', prevEndDate)
         .eq('is_income', false)
         .eq('is_ignored', false),
-      // Last 3 months for historical average (excluding current month)
+      // Last 6 months for historical ratio calculation (excluding current month)
       supabase
         .from('transactions')
         .select('amount, category_id, transaction_date')
-        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -3)))
+        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -6)))
         .lt('transaction_date', startDate)
         .eq('is_income', false)
         .eq('is_ignored', false),
@@ -816,11 +816,21 @@ export async function GET(request: NextRequest) {
     const totalIncome = (incomeRes.data || []).reduce((sum, t) => sum + t.amount, 0);
     const totalBudget = Object.values(budgets).reduce((sum, b) => sum + b, 0);
 
+    // Filter historical transactions to exclude savings
+    const historicalTransactions = (historicalRes.data || [])
+      .filter(t => !savingsIds.has(t.category_id))
+      .map(t => ({
+        amount: t.amount,
+        category_id: t.category_id,
+        transaction_date: t.transaction_date,
+      }));
+
     const forecast = forecastMonthlySpending({
       categories: categoryData,
       totalIncome,
       totalBudget,
       currentDate: new Date(),
+      historicalTransactions,
     });
 
     return NextResponse.json(forecast);

@@ -10,6 +10,57 @@ interface ForecastCardProps {
   month?: string;
 }
 
+interface ForecastRangeBarProps {
+  min: number;
+  max: number;
+  avg: number;
+  budget?: number;
+  showLabels?: boolean;
+}
+
+function ForecastRangeBar({ min, max, avg, budget, showLabels = true }: ForecastRangeBarProps) {
+  // Determine scale based on values
+  const maxValue = Math.max(max, budget || 0) * 1.1;
+
+  if (maxValue === 0) return null;
+
+  const minPercent = (min / maxValue) * 100;
+  const maxPercent = (max / maxValue) * 100;
+  const avgPercent = (avg / maxValue) * 100;
+  const budgetPercent = budget ? (budget / maxValue) * 100 : null;
+
+  return (
+    <div className="space-y-1">
+      <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+        {/* Range bar (min to max) */}
+        <div
+          className="absolute h-full bg-blue-200 rounded-full"
+          style={{ left: `${minPercent}%`, width: `${Math.max(maxPercent - minPercent, 2)}%` }}
+        />
+        {/* Average marker */}
+        <div
+          className="absolute w-2 h-2 bg-blue-600 rounded-full top-0"
+          style={{ left: `${avgPercent}%`, transform: 'translateX(-50%)' }}
+        />
+        {/* Budget marker */}
+        {budgetPercent !== null && (
+          <div
+            className="absolute w-0.5 h-3 bg-gray-500 -top-0.5"
+            style={{ left: `${budgetPercent}%` }}
+          />
+        )}
+      </div>
+      {showLabels && (
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>{formatCurrency(min)}</span>
+          <span className="text-gray-700 font-medium">{formatCurrency(avg)}</span>
+          <span>{formatCurrency(max)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ForecastCard({ month }: ForecastCardProps) {
   const { forecast, loading } = useForecast(month);
 
@@ -54,7 +105,9 @@ export function ForecastCard({ month }: ForecastCardProps) {
     : null;
 
   const isOverBudget = budgetDiff !== null && budgetDiff > 0;
-  const isNearBudget = budgetDiff !== null && budgetDiff > -100 && budgetDiff <= 0;
+
+  // Check if we have a meaningful range
+  const hasRange = forecast.totalProjectedMin !== forecast.totalProjectedMax;
 
   return (
     <Card>
@@ -70,14 +123,38 @@ export function ForecastCard({ month }: ForecastCardProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Summary */}
+        {/* Summary with range */}
         <div className="space-y-3 mb-4">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-600">Prognozowane wydatki:</span>
-            <span className="text-lg font-bold text-gray-900">
-              {formatCurrency(forecast.totalProjected)}
-            </span>
+            {hasRange ? (
+              <span className="text-sm font-medium text-gray-900">
+                {formatCurrency(forecast.totalProjectedMin)} - {formatCurrency(forecast.totalProjectedMax)}
+              </span>
+            ) : (
+              <span className="text-lg font-bold text-gray-900">
+                {formatCurrency(forecast.totalProjected)}
+              </span>
+            )}
           </div>
+
+          {/* Range visualization */}
+          {hasRange && (
+            <div className="py-1">
+              <ForecastRangeBar
+                min={forecast.totalProjectedMin}
+                max={forecast.totalProjectedMax}
+                avg={forecast.totalProjected}
+                budget={forecast.totalBudget > 0 ? forecast.totalBudget : undefined}
+                showLabels={false}
+              />
+              <div className="flex items-center justify-center mt-1.5">
+                <span className="text-xs text-gray-500">
+                  śr. <span className="font-medium text-gray-700">{formatCurrency(forecast.totalProjected)}</span>
+                </span>
+              </div>
+            </div>
+          )}
 
           {forecast.totalBudget > 0 && (
             <>
@@ -133,6 +210,8 @@ export function ForecastCard({ month }: ForecastCardProps) {
                 ? cat.vsBudget > 100 ? 'over' : cat.vsBudget > 90 ? 'near' : 'ok'
                 : null;
 
+              const catHasRange = cat.projectedMin !== cat.projectedMax;
+
               return (
                 <div key={cat.categoryId} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2 min-w-0">
@@ -158,9 +237,15 @@ export function ForecastCard({ month }: ForecastCardProps) {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-sm font-medium text-gray-900 tabular-nums">
-                      ~{formatCurrency(cat.projectedTotal)}
-                    </span>
+                    {catHasRange ? (
+                      <span className="text-xs text-gray-600 tabular-nums">
+                        {formatCurrency(cat.projectedMin)} - {formatCurrency(cat.projectedMax)}
+                      </span>
+                    ) : (
+                      <span className="text-sm font-medium text-gray-900 tabular-nums">
+                        ~{formatCurrency(cat.projectedTotal)}
+                      </span>
+                    )}
                     {budgetStatus === 'over' && (
                       <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
                     )}
