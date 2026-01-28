@@ -2,15 +2,16 @@
 
 import { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard, Trash2, AlertTriangle, Check } from 'lucide-react';
+import { Link2, RefreshCw, AlertCircle, CheckCircle, Loader2, Building2, Upload, Plus, X, CreditCard, Trash2, AlertTriangle, Check, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import type { BankConnection } from '@/types';
-import { formatDateTime, cn } from '@/lib/utils';
+import { formatDateTime, cn, getFinancialMonthBoundaries, formatShortDate } from '@/lib/utils';
 import { useImport } from '@/components/import/ImportContext';
+import { clearSettingsCache } from '@/hooks/useSettings';
 
 function formatIban(iban: string): string {
   // Remove all spaces and format as groups of 4
@@ -108,6 +109,8 @@ function SettingsContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [financialMonthStartDay, setFinancialMonthStartDay] = useState<number>(1);
+  const [savingFinancialMonth, setSavingFinancialMonth] = useState(false);
   const { startImport, isImporting } = useImport();
 
   const ibanValidation = useMemo(() => {
@@ -151,6 +154,14 @@ function SettingsContent() {
         const data = await response.json();
         if (data.ignored_ibans && Array.isArray(data.ignored_ibans)) {
           setIgnoredIbans(data.ignored_ibans);
+        }
+        if (data.financial_month_start_day) {
+          const day = typeof data.financial_month_start_day === 'number'
+            ? data.financial_month_start_day
+            : parseInt(data.financial_month_start_day, 10);
+          if (!isNaN(day) && day >= 1 && day <= 31) {
+            setFinancialMonthStartDay(day);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch settings:', error);
@@ -254,6 +265,31 @@ function SettingsContent() {
   const handleRemoveIban = (iban: string) => {
     saveIgnoredIbans(ignoredIbans.filter((i) => i !== iban));
   };
+
+  const saveFinancialMonthStartDay = async (day: number) => {
+    setSavingFinancialMonth(true);
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'financial_month_start_day', value: day }),
+      });
+      setFinancialMonthStartDay(day);
+      clearSettingsCache(); // Clear cache so other components fetch fresh settings
+      setMessage({ type: 'success', text: 'Zapisano ustawienie miesiąca finansowego' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Błąd podczas zapisywania ustawienia' });
+    } finally {
+      setSavingFinancialMonth(false);
+    }
+  };
+
+  // Calculate example financial month boundaries for preview
+  const exampleFinancialMonth = useMemo(() => {
+    const now = new Date();
+    const { start, end, label } = getFinancialMonthBoundaries(now, financialMonthStartDay);
+    return { start, end, label };
+  }, [financialMonthStartDay]);
 
   const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -528,6 +564,67 @@ function SettingsContent() {
               Brak dodanych IBAN-ów
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Miesiąc finansowy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-500 text-sm">
+            Ustaw dzień, od którego zaczyna się Twój miesiąc finansowy.
+            Przydatne gdy dostajesz pensję pod koniec miesiąca (np. 29.).
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Dzień rozpoczęcia:
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={financialMonthStartDay}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 1 && val <= 31) {
+                      setFinancialMonthStartDay(val);
+                    }
+                  }}
+                  className="w-20 text-center"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => saveFinancialMonthStartDay(financialMonthStartDay)}
+                  loading={savingFinancialMonth}
+                >
+                  Zapisz
+                </Button>
+              </div>
+            </div>
+
+            {financialMonthStartDay !== 1 && (
+              <div className="p-3 bg-blue-50 rounded-lg text-sm">
+                <p className="font-medium text-blue-800 mb-1">
+                  Przykład: &quot;{exampleFinancialMonth.label}&quot;
+                </p>
+                <p className="text-blue-600">
+                  {formatShortDate(exampleFinancialMonth.start)} - {formatShortDate(exampleFinancialMonth.end)}
+                </p>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-400">
+              Domyślnie: 1 (standardowy miesiąc kalendarzowy)
+            </p>
+          </div>
         </CardContent>
       </Card>
 

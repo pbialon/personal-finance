@@ -54,14 +54,23 @@ interface ForecastInput {
   totalBudget: number;
   currentDate: Date;
   historicalTransactions?: HistoricalTransaction[];
+  financialStartDay?: number;
 }
 
-function getDaysInMonth(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+import { getFinancialMonthDays, getFinancialDayOfMonth, getFinancialMonthBoundaries } from '@/lib/utils';
+
+function getDaysInMonth(date: Date, financialStartDay: number = 1): number {
+  if (financialStartDay === 1) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+  return getFinancialMonthDays(date, financialStartDay);
 }
 
-function getDayOfMonth(date: Date): number {
-  return date.getDate();
+function getDayOfMonth(date: Date, financialStartDay: number = 1): number {
+  if (financialStartDay === 1) {
+    return date.getDate();
+  }
+  return getFinancialDayOfMonth(date, financialStartDay);
 }
 
 /**
@@ -71,24 +80,31 @@ function getDayOfMonth(date: Date): number {
 function calculateHistoricalSpendingRatios(
   historicalTransactions: HistoricalTransaction[],
   dayOfMonth: number,
-  categoryId?: string
+  categoryId?: string,
+  financialStartDay: number = 1
 ): SpendingRatios {
-  // Group transactions by month (YYYY-MM)
+  // Group transactions by financial month period
   const byMonth: Record<string, { upToDay: number; total: number }> = {};
 
   historicalTransactions.forEach(t => {
     // Filter by category if specified
     if (categoryId && t.category_id !== categoryId) return;
 
-    const month = t.transaction_date.slice(0, 7);
-    const day = parseInt(t.transaction_date.slice(8, 10));
+    const txDate = new Date(t.transaction_date + 'T00:00:00');
 
-    if (!byMonth[month]) {
-      byMonth[month] = { upToDay: 0, total: 0 };
+    // Get the financial month this transaction belongs to
+    const { start, label } = getFinancialMonthBoundaries(txDate, financialStartDay);
+    const fmStartDate = new Date(start + 'T00:00:00');
+
+    // Calculate day within financial month
+    const dayInFM = Math.floor((txDate.getTime() - fmStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (!byMonth[label]) {
+      byMonth[label] = { upToDay: 0, total: 0 };
     }
-    byMonth[month].total += t.amount;
-    if (day <= dayOfMonth) {
-      byMonth[month].upToDay += t.amount;
+    byMonth[label].total += t.amount;
+    if (dayInFM <= dayOfMonth) {
+      byMonth[label].upToDay += t.amount;
     }
   });
 
@@ -204,17 +220,19 @@ function determineTrend(
 }
 
 export function forecastMonthlySpending(input: ForecastInput): MonthlyForecast {
-  const { categories, totalIncome, totalBudget, currentDate, historicalTransactions = [] } = input;
+  const { categories, totalIncome, totalBudget, currentDate, historicalTransactions = [], financialStartDay = 1 } = input;
 
-  const dayOfMonth = getDayOfMonth(currentDate);
-  const daysInMonth = getDaysInMonth(currentDate);
+  const dayOfMonth = getDayOfMonth(currentDate, financialStartDay);
+  const daysInMonth = getDaysInMonth(currentDate, financialStartDay);
   const daysRemaining = daysInMonth - dayOfMonth;
   const percentMonthComplete = Math.round((dayOfMonth / daysInMonth) * 100);
 
   // Calculate overall spending ratios from historical data
   const overallRatios = calculateHistoricalSpendingRatios(
     historicalTransactions,
-    dayOfMonth
+    dayOfMonth,
+    undefined,
+    financialStartDay
   );
 
   const forecasts: CategoryForecast[] = [];
@@ -228,7 +246,8 @@ export function forecastMonthlySpending(input: ForecastInput): MonthlyForecast {
     const categoryRatios = calculateHistoricalSpendingRatios(
       historicalTransactions,
       dayOfMonth,
-      cat.categoryId
+      cat.categoryId,
+      financialStartDay
     );
 
     // Use category ratios if available, otherwise fall back to overall ratios

@@ -13,31 +13,38 @@ import { MonthPicker } from '@/components/ui/MonthPicker';
 import { useMonthlyStats, useCategorySpending, useMonthlyTrends, useBudgetProgress } from '@/hooks/useAnalytics';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
-import { formatMonthYear, getFirstDayOfMonth, addMonths } from '@/lib/utils';
+import { formatMonthYear, getFirstDayOfMonth, addMonths, getFinancialMonthBoundaries, formatFinancialMonthRange, addFinancialMonths } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useFinancialMonthStartDay } from '@/hooks/useSettings';
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const { financialStartDay } = useFinancialMonthStartDay();
+
+  // Get financial month boundaries based on settings
+  const { start: financialStart, end: financialEnd, label: financialLabel } = getFinancialMonthBoundaries(currentMonth, financialStartDay);
   const monthStr = getFirstDayOfMonth(currentMonth);
+  const showDateRange = financialStartDay !== 1;
 
   const { stats, loading: statsLoading } = useMonthlyStats(monthStr);
   const { spending, loading: spendingLoading } = useCategorySpending(monthStr);
   const { trends, loading: trendsLoading } = useMonthlyTrends(monthStr);
   const { progress, loading: progressLoading } = useBudgetProgress(monthStr);
   const { transactions, updateCategory, updateDescription, deleteTransaction } = useTransactions({
-    startDate: getFirstDayOfMonth(currentMonth),
-    endDate: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString().split('T')[0],
+    startDate: financialStart,
+    endDate: financialEnd,
   });
   const { categories } = useCategories();
 
-  const goToPreviousMonth = () => setCurrentMonth((m) => addMonths(m, -1));
-  const goToNextMonth = () => setCurrentMonth((m) => addMonths(m, 1));
+  const goToPreviousMonth = () => setCurrentMonth((m) => addFinancialMonths(m, -1, financialStartDay));
+  const goToNextMonth = () => setCurrentMonth((m) => addFinancialMonths(m, 1, financialStartDay));
   const goToCurrentMonth = () => setCurrentMonth(new Date());
 
-  const isCurrentMonth =
-    currentMonth.getMonth() === new Date().getMonth() &&
-    currentMonth.getFullYear() === new Date().getFullYear();
+  // Check if we're in the current financial month
+  const today = new Date();
+  const todayFinancial = getFinancialMonthBoundaries(today, financialStartDay);
+  const isCurrentMonth = financialStart === todayFinancial.start;
 
   const totalPlanned = progress.reduce((sum, b) => sum + b.planned, 0);
   const totalActual = progress.reduce((sum, b) => sum + b.actual, 0);
@@ -60,18 +67,26 @@ export default function Dashboard() {
           <button
             onClick={() => setIsMonthPickerOpen(true)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white hover:shadow-sm transition-all min-w-[180px] justify-center',
+              'flex flex-col items-center gap-0 px-4 py-2 rounded-full hover:bg-white hover:shadow-sm transition-all min-w-[180px] justify-center',
               isMonthPickerOpen && 'bg-white shadow-sm ring-2 ring-blue-500'
             )}
+            title={showDateRange ? formatFinancialMonthRange(currentMonth, financialStartDay) : undefined}
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
-            ) : (
-              <Calendar className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center gap-2">
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
+              ) : (
+                <Calendar className="h-4 w-4 text-gray-500" />
+              )}
+              <span className="font-semibold text-gray-900 capitalize">
+                {showDateRange ? financialLabel : formatMonthYear(currentMonth)}
+              </span>
+            </div>
+            {showDateRange && (
+              <span className="text-[10px] text-gray-500">
+                {formatFinancialMonthRange(currentMonth, financialStartDay)}
+              </span>
             )}
-            <span className="font-semibold text-gray-900 capitalize">
-              {formatMonthYear(currentMonth)}
-            </span>
           </button>
 
           <button

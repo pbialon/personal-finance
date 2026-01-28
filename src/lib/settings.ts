@@ -1,5 +1,40 @@
 import { createClient } from '@/lib/supabase/server';
 
+const DEFAULT_FINANCIAL_MONTH_START_DAY = 1;
+
+/**
+ * Fetches the financial month start day from app_settings.
+ * Returns 1 (calendar month) if not configured.
+ *
+ * @returns The day of month (1-31) when the financial month starts
+ */
+export async function getFinancialMonthStartDay(): Promise<number> {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'financial_month_start_day')
+      .single();
+
+    if (error || !data) {
+      return DEFAULT_FINANCIAL_MONTH_START_DAY;
+    }
+
+    const value = typeof data.value === 'number' ? data.value : parseInt(data.value, 10);
+
+    // Validate range 1-31
+    if (isNaN(value) || value < 1 || value > 31) {
+      return DEFAULT_FINANCIAL_MONTH_START_DAY;
+    }
+
+    return value;
+  } catch {
+    return DEFAULT_FINANCIAL_MONTH_START_DAY;
+  }
+}
+
 export async function getIgnoredIbans(): Promise<string[]> {
   try {
     const supabase = await createClient();

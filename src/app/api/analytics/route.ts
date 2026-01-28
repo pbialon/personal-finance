@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getFirstDayOfMonth, getLastDayOfMonth, addMonths, calculatePercentageChange } from '@/lib/utils';
-import { forecastMonthlySpending, type MonthlyForecast } from '@/lib/spending-forecast';
+import { getFirstDayOfMonth, getLastDayOfMonth, addMonths, calculatePercentageChange, getFinancialMonthBoundaries, addFinancialMonths, getFinancialMonthDays, getFinancialDayOfMonth } from '@/lib/utils';
+import { getFinancialMonthStartDay } from '@/lib/settings';
+import { forecastMonthlySpending } from '@/lib/spending-forecast';
 import type {
   MonthlyStats,
   CategorySpending,
@@ -20,14 +21,18 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type');
   const monthParam = searchParams.get('month');
 
+  // Get the financial month start day setting
+  const financialStartDay = await getFinancialMonthStartDay();
+
   // Parse as local time (not UTC) by adding T00:00:00
   const month = monthParam ? new Date(monthParam + 'T00:00:00') : new Date();
-  const startDate = getFirstDayOfMonth(month);
-  const endDate = getLastDayOfMonth(month);
 
-  const prevMonth = addMonths(month, -1);
-  const prevStartDate = getFirstDayOfMonth(prevMonth);
-  const prevEndDate = getLastDayOfMonth(prevMonth);
+  // Use financial month boundaries
+  const { start: startDate, end: endDate, label: monthLabel } = getFinancialMonthBoundaries(month, financialStartDay);
+
+  // Previous financial month
+  const prevMonth = addFinancialMonths(month, -1, financialStartDay);
+  const { start: prevStartDate, end: prevEndDate } = getFinancialMonthBoundaries(prevMonth, financialStartDay);
 
   if (type === 'stats') {
     const [currentData, prevData, savingsCategories] = await Promise.all([
@@ -149,12 +154,15 @@ export async function GET(request: NextRequest) {
   if (type === 'trends') {
     const months = [];
     for (let i = 5; i >= 0; i--) {
-      const m = addMonths(month, -i);
+      const m = addFinancialMonths(month, -i, financialStartDay);
+      const { start, end, label } = getFinancialMonthBoundaries(m, financialStartDay);
+      // Format label as short month + year
+      const labelDate = new Date(label);
       months.push({
         date: m,
-        start: getFirstDayOfMonth(m),
-        end: getLastDayOfMonth(m),
-        label: m.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }),
+        start,
+        end,
+        label: labelDate.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' }),
       });
     }
 
@@ -700,6 +708,8 @@ export async function GET(request: NextRequest) {
 
   if (type === 'daily-spending') {
     // Get current month daily spending data for sparkline chart
+    const historicalStartDate = getFinancialMonthBoundaries(addFinancialMonths(month, -6, financialStartDay), financialStartDay).start;
+
     const [transactionsRes, historicalRes, savingsCategories] = await Promise.all([
       // Current month transactions with dates
       supabase
@@ -713,7 +723,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from('transactions')
         .select('amount, transaction_date, category_id')
-        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -6)))
+        .gte('transaction_date', historicalStartDate)
         .lt('transaction_date', startDate)
         .eq('is_income', false)
         .eq('is_ignored', false),
@@ -728,25 +738,32 @@ export async function GET(request: NextRequest) {
     const transactions = (transactionsRes.data || []).filter(t => !savingsIds.has(t.category_id));
     const historicalTransactions = (historicalRes.data || []).filter(t => !savingsIds.has(t.category_id));
 
-    const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-    const currentDay = new Date().getDate();
+    const daysInMonth = getFinancialMonthDays(month, financialStartDay);
+    const currentDay = getFinancialDayOfMonth(new Date(), financialStartDay);
 
-    // Calculate actual spending per day
+    // Calculate actual spending per day (relative to financial month start)
     const dailySpent: Record<number, number> = {};
+    const financialMonthStartDate = new Date(startDate + 'T00:00:00');
     transactions.forEach(t => {
-      const day = parseInt(t.transaction_date.slice(8, 10));
-      dailySpent[day] = (dailySpent[day] || 0) + t.amount;
+      const txDate = new Date(t.transaction_date + 'T00:00:00');
+      const dayDiff = Math.floor((txDate.getTime() - financialMonthStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      dailySpent[dayDiff] = (dailySpent[dayDiff] || 0) + t.amount;
     });
 
     // Calculate average daily spending from historical data for projection
+    // Group by financial month periods
     const historicalByMonth: Record<string, Record<number, number>> = {};
     historicalTransactions.forEach(t => {
-      const monthKey = t.transaction_date.slice(0, 7);
-      const day = parseInt(t.transaction_date.slice(8, 10));
-      if (!historicalByMonth[monthKey]) {
-        historicalByMonth[monthKey] = {};
+      const txDate = new Date(t.transaction_date + 'T00:00:00');
+      // Find which financial month this transaction belongs to
+      const { start: fmStart, label } = getFinancialMonthBoundaries(txDate, financialStartDay);
+      const fmStartDate = new Date(fmStart + 'T00:00:00');
+      const dayInFM = Math.floor((txDate.getTime() - fmStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+      if (!historicalByMonth[label]) {
+        historicalByMonth[label] = {};
       }
-      historicalByMonth[monthKey][day] = (historicalByMonth[monthKey][day] || 0) + t.amount;
+      historicalByMonth[label][dayInFM] = (historicalByMonth[label][dayInFM] || 0) + t.amount;
     });
 
     // Calculate average daily pattern from historical months
@@ -789,6 +806,11 @@ export async function GET(request: NextRequest) {
 
   if (type === 'forecast') {
     // Get current month data
+    const historicalStartForForecast = getFinancialMonthBoundaries(addFinancialMonths(month, -6, financialStartDay), financialStartDay).start;
+
+    // For budgets, we still use calendar month as per the plan
+    const budgetMonth = getFirstDayOfMonth(month);
+
     const [transactionsRes, budgetsRes, categoriesRes, prevMonthRes, historicalRes, savingsCategories, incomeRes] = await Promise.all([
       // Current month transactions
       supabase
@@ -798,11 +820,11 @@ export async function GET(request: NextRequest) {
         .lte('transaction_date', endDate)
         .eq('is_income', false)
         .eq('is_ignored', false),
-      // Current month budgets
+      // Current month budgets (still using calendar month)
       supabase
         .from('budgets')
         .select('category_id, planned_amount')
-        .eq('month', startDate)
+        .eq('month', budgetMonth)
         .eq('is_income', false),
       // All categories
       supabase
@@ -820,7 +842,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from('transactions')
         .select('amount, category_id, transaction_date')
-        .gte('transaction_date', getFirstDayOfMonth(addMonths(month, -6)))
+        .gte('transaction_date', historicalStartForForecast)
         .lt('transaction_date', startDate)
         .eq('is_income', false)
         .eq('is_ignored', false),
@@ -921,6 +943,7 @@ export async function GET(request: NextRequest) {
       totalBudget,
       currentDate: new Date(),
       historicalTransactions,
+      financialStartDay,
     });
 
     return NextResponse.json(forecast);

@@ -10,13 +10,17 @@ import { BudgetWizard } from '@/components/budget/BudgetWizard';
 import { useBudget } from '@/hooks/useBudget';
 import { useCategories } from '@/hooks/useCategories';
 import { useCategorySpending } from '@/hooks/useAnalytics';
-import { formatMonthYear, getFirstDayOfMonth, addMonths } from '@/lib/utils';
+import { formatMonthYear, getFirstDayOfMonth, addMonths, getFinancialMonthBoundaries, formatFinancialMonthRange } from '@/lib/utils';
+import { useFinancialMonthStartDay } from '@/hooks/useSettings';
 import type { Budget } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 
 export default function BudgetPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStr = getFirstDayOfMonth(currentMonth);
+  const { financialStartDay } = useFinancialMonthStartDay();
+  const showFinancialNote = financialStartDay !== 1;
+  const { label: financialLabel } = getFinancialMonthBoundaries(currentMonth, financialStartDay);
 
   const { budgets, loading, addBudget, saveBudgetPlan, deleteBudget } = useBudget(monthStr);
   const { categories } = useCategories();
@@ -84,7 +88,10 @@ export default function BudgetPage() {
             <Button variant="ghost" size="sm" onClick={goToPreviousMonth}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <span className="text-sm font-medium min-w-[120px] text-center">
+            <span
+              className="text-sm font-medium min-w-[120px] text-center"
+              title={showFinancialNote ? `Budżet przypisany do miesiąca kalendarzowego (${formatMonthYear(currentMonth)})` : undefined}
+            >
               {formatMonthYear(currentMonth)}
             </span>
             <Button variant="ghost" size="sm" onClick={goToNextMonth}>
