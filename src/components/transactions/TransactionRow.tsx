@@ -9,9 +9,10 @@ import type { Transaction } from '@/types';
 interface TransactionRowProps {
   transaction: Transaction;
   onClick?: (transaction: Transaction) => void;
+  isRecurring?: boolean;
 }
 
-export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
+export function TransactionRow({ transaction, onClick, isRecurring }: TransactionRowProps) {
   const displayName =
     transaction.description ||
     transaction.merchant?.display_name ||
@@ -88,6 +89,11 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps) {
         )}
         <div className="flex items-center gap-2 mt-1">
           <CategoryBadge category={category} size="sm" showIcon={false} />
+          {isRecurring && (
+            <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded font-medium">
+              Cykliczna
+            </span>
+          )}
         </div>
       </div>
 
