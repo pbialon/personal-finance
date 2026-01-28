@@ -124,7 +124,7 @@ export function BudgetProgressCard({
 
       <CardContent className="pt-0">
         {/* Total budget summary */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between pb-5 mb-5 border-b border-gray-100">
           <div className="space-y-1">
             <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
               Wykorzystano
