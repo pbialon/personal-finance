@@ -127,6 +127,7 @@ export interface BudgetProgress {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  categoryIcon: string | null;
   planned: number;
   actual: number;
   percentage: number;
