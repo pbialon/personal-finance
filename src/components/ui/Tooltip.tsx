@@ -43,7 +43,7 @@ export function Tooltip({ children, content, className }: TooltipProps) {
         <div
           ref={tooltipRef}
           className={cn(
-            'absolute z-50 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg max-w-xs whitespace-normal',
+            'absolute z-50 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg shadow-lg w-64 whitespace-normal',
             position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2',
             'left-1/2 -translate-x-1/2',
             className
