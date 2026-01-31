@@ -5,11 +5,12 @@ import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import type { TimePeriod, TimePeriodRange } from '@/types';
-import { getFirstDayOfMonth, getLastDayOfMonth, addMonths } from '@/lib/utils';
+import { getFinancialMonthBoundaries, addFinancialMonths } from '@/lib/utils';
 
 interface TimePeriodSelectorProps {
   onPeriodChange: (range: TimePeriodRange) => void;
   showCompare?: boolean;
+  financialStartDay?: number;
 }
 
 const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
@@ -20,7 +21,7 @@ const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
   { value: 'custom', label: 'Własny' },
 ];
 
-export function TimePeriodSelector({ onPeriodChange, showCompare = true }: TimePeriodSelectorProps) {
+export function TimePeriodSelector({ onPeriodChange, showCompare = true, financialStartDay = 1 }: TimePeriodSelectorProps) {
   const [period, setPeriod] = useState<TimePeriod>('year');
   const [compare, setCompare] = useState(false);
   const [customStart, setCustomStart] = useState<string | undefined>(undefined);
@@ -35,46 +36,77 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true }: TimeP
 
     switch (selectedPeriod) {
       case 'month': {
-        startDate = getFirstDayOfMonth(now);
-        endDate = getLastDayOfMonth(now);
+        const { start, end } = getFinancialMonthBoundaries(now, financialStartDay);
+        startDate = start;
+        endDate = end;
         if (compareEnabled) {
-          const prevMonth = addMonths(now, -1);
-          compareStartDate = getFirstDayOfMonth(prevMonth);
-          compareEndDate = getLastDayOfMonth(prevMonth);
+          const prevMonth = addFinancialMonths(now, -1, financialStartDay);
+          const prev = getFinancialMonthBoundaries(prevMonth, financialStartDay);
+          compareStartDate = prev.start;
+          compareEndDate = prev.end;
         }
         break;
       }
       case 'quarter': {
-        const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-        const quarterEnd = addMonths(quarterStart, 3);
-        quarterEnd.setDate(0);
-        startDate = getFirstDayOfMonth(quarterStart);
-        endDate = `${quarterEnd.getFullYear()}-${String(quarterEnd.getMonth() + 1).padStart(2, '0')}-${String(quarterEnd.getDate()).padStart(2, '0')}`;
+        // Get current financial month boundaries first
+        const currentFM = getFinancialMonthBoundaries(now, financialStartDay);
+        const currentFMStart = new Date(currentFM.start + 'T00:00:00');
+
+        // Calculate which quarter we're in (0-3)
+        const quarterIndex = Math.floor(currentFMStart.getMonth() / 3);
+
+        // Get first financial month of the quarter
+        const quarterFirstMonth = new Date(currentFMStart.getFullYear(), quarterIndex * 3, financialStartDay);
+        const quarterStart = getFinancialMonthBoundaries(quarterFirstMonth, financialStartDay);
+
+        // Get last financial month of the quarter (2 months later)
+        const quarterLastMonth = addFinancialMonths(quarterFirstMonth, 2, financialStartDay);
+        const quarterEnd = getFinancialMonthBoundaries(quarterLastMonth, financialStartDay);
+
+        startDate = quarterStart.start;
+        endDate = quarterEnd.end;
+
         if (compareEnabled) {
-          const prevQuarterStart = addMonths(quarterStart, -3);
-          const prevQuarterEnd = new Date(quarterStart);
-          prevQuarterEnd.setDate(0);
-          compareStartDate = getFirstDayOfMonth(prevQuarterStart);
-          compareEndDate = `${prevQuarterEnd.getFullYear()}-${String(prevQuarterEnd.getMonth() + 1).padStart(2, '0')}-${String(prevQuarterEnd.getDate()).padStart(2, '0')}`;
+          const prevQuarterFirstMonth = addFinancialMonths(quarterFirstMonth, -3, financialStartDay);
+          const prevQuarterStart = getFinancialMonthBoundaries(prevQuarterFirstMonth, financialStartDay);
+          const prevQuarterLastMonth = addFinancialMonths(prevQuarterFirstMonth, 2, financialStartDay);
+          const prevQuarterEnd = getFinancialMonthBoundaries(prevQuarterLastMonth, financialStartDay);
+          compareStartDate = prevQuarterStart.start;
+          compareEndDate = prevQuarterEnd.end;
         }
         break;
       }
       case 'half-year': {
-        const halfStart = new Date(now.getFullYear(), now.getMonth() >= 6 ? 6 : 0, 1);
-        const halfEnd = addMonths(halfStart, 6);
-        halfEnd.setDate(0);
-        startDate = getFirstDayOfMonth(halfStart);
-        endDate = `${halfEnd.getFullYear()}-${String(halfEnd.getMonth() + 1).padStart(2, '0')}-${String(halfEnd.getDate()).padStart(2, '0')}`;
+        // Get current financial month boundaries first
+        const currentFM = getFinancialMonthBoundaries(now, financialStartDay);
+        const currentFMStart = new Date(currentFM.start + 'T00:00:00');
+
+        // Calculate which half we're in (0 or 1)
+        const halfIndex = currentFMStart.getMonth() >= 6 ? 1 : 0;
+
+        // Get first financial month of the half
+        const halfFirstMonth = new Date(currentFMStart.getFullYear(), halfIndex * 6, financialStartDay);
+        const halfStart = getFinancialMonthBoundaries(halfFirstMonth, financialStartDay);
+
+        // Get last financial month of the half (5 months later)
+        const halfLastMonth = addFinancialMonths(halfFirstMonth, 5, financialStartDay);
+        const halfEnd = getFinancialMonthBoundaries(halfLastMonth, financialStartDay);
+
+        startDate = halfStart.start;
+        endDate = halfEnd.end;
+
         if (compareEnabled) {
-          const prevHalfStart = addMonths(halfStart, -6);
-          const prevHalfEnd = new Date(halfStart);
-          prevHalfEnd.setDate(0);
-          compareStartDate = getFirstDayOfMonth(prevHalfStart);
-          compareEndDate = `${prevHalfEnd.getFullYear()}-${String(prevHalfEnd.getMonth() + 1).padStart(2, '0')}-${String(prevHalfEnd.getDate()).padStart(2, '0')}`;
+          const prevHalfFirstMonth = addFinancialMonths(halfFirstMonth, -6, financialStartDay);
+          const prevHalfStart = getFinancialMonthBoundaries(prevHalfFirstMonth, financialStartDay);
+          const prevHalfLastMonth = addFinancialMonths(prevHalfFirstMonth, 5, financialStartDay);
+          const prevHalfEnd = getFinancialMonthBoundaries(prevHalfLastMonth, financialStartDay);
+          compareStartDate = prevHalfStart.start;
+          compareEndDate = prevHalfEnd.end;
         }
         break;
       }
       case 'year': {
+        // For year, we still use calendar year boundaries
         startDate = `${now.getFullYear()}-01-01`;
         endDate = `${now.getFullYear()}-12-31`;
         if (compareEnabled) {
@@ -84,14 +116,15 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true }: TimeP
         break;
       }
       case 'custom': {
-        startDate = customStart || getFirstDayOfMonth(now);
-        endDate = customEnd || getLastDayOfMonth(now);
+        const { start, end } = getFinancialMonthBoundaries(now, financialStartDay);
+        startDate = customStart || start;
+        endDate = customEnd || end;
         break;
       }
     }
 
     return { startDate, endDate, compareStartDate, compareEndDate };
-  }, [customStart, customEnd]);
+  }, [customStart, customEnd, financialStartDay]);
 
   const handlePeriodChange = useCallback((newPeriod: TimePeriod) => {
     setPeriod(newPeriod);
@@ -128,6 +161,14 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true }: TimeP
       onPeriodChange({ startDate: customStart, endDate: customEnd });
     }
   }, [period, customStart, customEnd, onPeriodChange]);
+
+  // Recalculate range when financialStartDay changes
+  useEffect(() => {
+    if (period !== 'custom') {
+      const range = calculateRange(period, compare);
+      onPeriodChange(range);
+    }
+  }, [financialStartDay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentRange = useMemo(() => calculateRange(period, compare), [period, compare, calculateRange]);
 

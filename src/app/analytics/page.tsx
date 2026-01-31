@@ -8,10 +8,12 @@ import { CategoryAnalysisCard } from '@/components/analytics/CategoryAnalysisCar
 import { TopSpendersCard } from '@/components/analytics/TopSpendersCard';
 import { YearOverviewCard } from '@/components/analytics/YearOverviewCard';
 import { GoalsCard } from '@/components/analytics/GoalsCard';
+import { useFinancialMonthStartDay } from '@/hooks/useSettings';
 import type { TimePeriodRange } from '@/types';
 
 export default function AnalyticsPage() {
   const now = new Date();
+  const { financialStartDay } = useFinancialMonthStartDay();
   const [compare, setCompare] = useState(false);
   const [range, setRange] = useState<TimePeriodRange>({
     startDate: `${now.getFullYear()}-01-01`,
@@ -37,7 +39,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Analityka</h1>
-        <TimePeriodSelector onPeriodChange={handlePeriodChange} showCompare={false} />
+        <TimePeriodSelector onPeriodChange={handlePeriodChange} showCompare={false} financialStartDay={financialStartDay} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
