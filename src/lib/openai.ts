@@ -36,7 +36,6 @@ export async function categorizeTransaction(
 
 Transakcja:
 - Opis: ${rawDescription}
-- Kwota: ${amount} PLN
 - Data: ${date}
 - Odbiorca/Nadawca: ${counterpartyName || 'Nieznany'}
 
