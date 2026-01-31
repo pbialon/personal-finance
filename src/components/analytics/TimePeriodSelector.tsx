@@ -48,15 +48,29 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true, financi
         break;
       }
       case 'quarter': {
-        // Get current financial month boundaries first
+        // Financial quarters are based on financial year, not calendar year
+        // Q1 = Financial Jan-Mar, Q2 = Financial Apr-Jun, Q3 = Financial Jul-Sep, Q4 = Financial Oct-Dec
+        const year = now.getFullYear();
+
+        // Find financial January of current year (start of financial year)
+        const financialJanDate = new Date(year, 0, 15); // Jan 15 to be safe
+        const financialJan = getFinancialMonthBoundaries(financialJanDate, financialStartDay);
+        const financialYearStart = new Date(financialJan.start + 'T00:00:00');
+
+        // Get current financial month
         const currentFM = getFinancialMonthBoundaries(now, financialStartDay);
         const currentFMStart = new Date(currentFM.start + 'T00:00:00');
 
-        // Calculate which quarter we're in (0-3)
-        const quarterIndex = Math.floor(currentFMStart.getMonth() / 3);
+        // Calculate months since financial year start
+        const monthsSinceYearStart = Math.round(
+          (currentFMStart.getTime() - financialYearStart.getTime()) / (30.44 * 24 * 60 * 60 * 1000)
+        );
 
-        // Get first financial month of the quarter
-        const quarterFirstMonth = new Date(currentFMStart.getFullYear(), quarterIndex * 3, financialStartDay);
+        // Determine quarter (0-3)
+        const quarterIndex = Math.floor(Math.max(0, monthsSinceYearStart) / 3);
+
+        // Get first financial month of this quarter
+        const quarterFirstMonth = addFinancialMonths(financialYearStart, quarterIndex * 3, financialStartDay);
         const quarterStart = getFinancialMonthBoundaries(quarterFirstMonth, financialStartDay);
 
         // Get last financial month of the quarter (2 months later)
@@ -77,15 +91,29 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true, financi
         break;
       }
       case 'half-year': {
-        // Get current financial month boundaries first
+        // Financial halves are based on financial year, not calendar year
+        // H1 = Financial Jan-Jun, H2 = Financial Jul-Dec
+        const year = now.getFullYear();
+
+        // Find financial January of current year (start of financial year)
+        const financialJanDate = new Date(year, 0, 15); // Jan 15 to be safe
+        const financialJan = getFinancialMonthBoundaries(financialJanDate, financialStartDay);
+        const financialYearStart = new Date(financialJan.start + 'T00:00:00');
+
+        // Get current financial month
         const currentFM = getFinancialMonthBoundaries(now, financialStartDay);
         const currentFMStart = new Date(currentFM.start + 'T00:00:00');
 
-        // Calculate which half we're in (0 or 1)
-        const halfIndex = currentFMStart.getMonth() >= 6 ? 1 : 0;
+        // Calculate months since financial year start
+        const monthsSinceYearStart = Math.round(
+          (currentFMStart.getTime() - financialYearStart.getTime()) / (30.44 * 24 * 60 * 60 * 1000)
+        );
 
-        // Get first financial month of the half
-        const halfFirstMonth = new Date(currentFMStart.getFullYear(), halfIndex * 6, financialStartDay);
+        // Determine half (0 or 1)
+        const halfIndex = Math.floor(Math.max(0, monthsSinceYearStart) / 6);
+
+        // Get first financial month of this half
+        const halfFirstMonth = addFinancialMonths(financialYearStart, halfIndex * 6, financialStartDay);
         const halfStart = getFinancialMonthBoundaries(halfFirstMonth, financialStartDay);
 
         // Get last financial month of the half (5 months later)
