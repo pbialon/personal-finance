@@ -155,9 +155,9 @@ export async function GET(request: NextRequest) {
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const m = addFinancialMonths(month, -i, financialStartDay);
-      const { start, end, label } = getFinancialMonthBoundaries(m, financialStartDay);
-      // Format label as short month + year
-      const labelDate = new Date(label);
+      const { start, end } = getFinancialMonthBoundaries(m, financialStartDay);
+      // Format label as short month + year using end date (which is in the "main" month for financial periods)
+      const labelDate = new Date(end + 'T00:00:00');
       months.push({
         date: m,
         start,
