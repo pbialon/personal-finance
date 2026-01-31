@@ -106,12 +106,28 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true, financi
         break;
       }
       case 'year': {
-        // For year, we still use calendar year boundaries
-        startDate = `${now.getFullYear()}-01-01`;
-        endDate = `${now.getFullYear()}-12-31`;
+        // Financial year: from financial January to financial December
+        // Financial January = period containing most of calendar January
+        const year = now.getFullYear();
+
+        // Get financial January (use Jan 15 to ensure we're in the right financial month)
+        const janDate = new Date(year, 0, 15);
+        const financialJan = getFinancialMonthBoundaries(janDate, financialStartDay);
+
+        // Get financial December (use Dec 15 to ensure we're in the right financial month)
+        const decDate = new Date(year, 11, 15);
+        const financialDec = getFinancialMonthBoundaries(decDate, financialStartDay);
+
+        startDate = financialJan.start;
+        endDate = financialDec.end;
+
         if (compareEnabled) {
-          compareStartDate = `${now.getFullYear() - 1}-01-01`;
-          compareEndDate = `${now.getFullYear() - 1}-12-31`;
+          const prevJanDate = new Date(year - 1, 0, 15);
+          const prevFinancialJan = getFinancialMonthBoundaries(prevJanDate, financialStartDay);
+          const prevDecDate = new Date(year - 1, 11, 15);
+          const prevFinancialDec = getFinancialMonthBoundaries(prevDecDate, financialStartDay);
+          compareStartDate = prevFinancialJan.start;
+          compareEndDate = prevFinancialDec.end;
         }
         break;
       }
@@ -162,13 +178,13 @@ export function TimePeriodSelector({ onPeriodChange, showCompare = true, financi
     }
   }, [period, customStart, customEnd, onPeriodChange]);
 
-  // Recalculate range when financialStartDay changes
+  // Calculate and emit range on mount and when financialStartDay changes
   useEffect(() => {
     if (period !== 'custom') {
       const range = calculateRange(period, compare);
       onPeriodChange(range);
     }
-  }, [financialStartDay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [financialStartDay, calculateRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentRange = useMemo(() => calculateRange(period, compare), [period, compare, calculateRange]);
 
