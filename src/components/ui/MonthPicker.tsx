@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getFinancialMonthBoundaries } from '@/lib/utils';
 
 interface MonthPickerProps {
   value: Date;
@@ -10,6 +10,7 @@ interface MonthPickerProps {
   isOpen: boolean;
   onClose: () => void;
   maxDate?: Date;
+  financialStartDay?: number;
 }
 
 const MONTHS = [
@@ -17,7 +18,7 @@ const MONTHS = [
   'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'
 ];
 
-export function MonthPicker({ value, onChange, isOpen, onClose, maxDate }: MonthPickerProps) {
+export function MonthPicker({ value, onChange, isOpen, onClose, maxDate, financialStartDay = 1 }: MonthPickerProps) {
   const [viewYear, setViewYear] = useState(value.getFullYear());
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -43,10 +44,24 @@ export function MonthPicker({ value, onChange, isOpen, onClose, maxDate }: Month
 
   if (!isOpen) return null;
 
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
-  const maxYear = maxDate?.getFullYear() ?? currentYear;
-  const maxMonth = maxDate?.getMonth() ?? currentMonth;
+  // For financial month, determine the current financial month label
+  // which tells us which calendar month we're "in" financially
+  const today = new Date();
+  const { label: currentFinancialLabel } = getFinancialMonthBoundaries(today, financialStartDay);
+
+  // Parse the financial label to get the month index (e.g., "Luty 2026" -> 1)
+  const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
+  const labelParts = currentFinancialLabel.split(' ');
+  const financialMonthIndex = monthNames.findIndex(m => m.toLowerCase() === labelParts[0].toLowerCase());
+  const financialYear = parseInt(labelParts[1], 10);
+
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  // Use financial month boundaries for determining max selectable month
+  const maxYear = financialStartDay !== 1 ? financialYear : (maxDate?.getFullYear() ?? currentYear);
+  const maxMonth = financialStartDay !== 1 ? financialMonthIndex : (maxDate?.getMonth() ?? currentMonth);
 
   const handleMonthClick = (monthIndex: number) => {
     const newDate = new Date(viewYear, monthIndex, 1);
@@ -92,7 +107,8 @@ export function MonthPicker({ value, onChange, isOpen, onClose, maxDate }: Month
         {MONTHS.map((month, index) => {
           const disabled = isMonthDisabled(index);
           const selected = isMonthSelected(index);
-          const isCurrent = viewYear === currentYear && index === currentMonth;
+          // Highlight the current financial month, not calendar month
+          const isCurrent = viewYear === maxYear && index === maxMonth;
 
           return (
             <button

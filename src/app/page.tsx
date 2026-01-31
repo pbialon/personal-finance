@@ -103,6 +103,7 @@ export default function Dashboard() {
             isOpen={isMonthPickerOpen}
             onClose={() => setIsMonthPickerOpen(false)}
             maxDate={new Date()}
+            financialStartDay={financialStartDay}
           />
 
           {!isCurrentMonth && (
