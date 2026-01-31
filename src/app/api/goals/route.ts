@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getFinancialMonthStartDay } from '@/lib/settings';
+import { addFinancialMonths, getFinancialMonthBoundaries } from '@/lib/utils';
 import type { Goal, GoalWithProgress } from '@/types';
 
 function calculateProgress(goal: Goal, avgMonthlySavings: number): GoalWithProgress {
@@ -52,16 +54,23 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Calculate average monthly savings from last 3 months
+  // Calculate average monthly savings from last 3 financial months
+  const financialStartDay = await getFinancialMonthStartDay();
+  const isFinancialMonth = financialStartDay !== 1;
   const now = new Date();
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  // Get current financial month boundaries
+  const currentFinancialMonth = getFinancialMonthBoundaries(now, financialStartDay);
+
+  // Go back 3 financial months
+  const threeMonthsAgoDate = addFinancialMonths(now, -3, financialStartDay);
+  const threeMonthsAgoBoundaries = getFinancialMonthBoundaries(threeMonthsAgoDate, financialStartDay);
 
   const { data: savingsTransactions } = await supabase
     .from('transactions')
     .select('amount, categories!inner(is_savings)')
-    .gte('transaction_date', threeMonthsAgo.toISOString().split('T')[0])
-    .lte('transaction_date', now.toISOString().split('T')[0])
+    .gte('transaction_date', threeMonthsAgoBoundaries.start)
+    .lte('transaction_date', currentFinancialMonth.end)
     .eq('categories.is_savings', true)
     .eq('is_ignored', false);
 
@@ -75,7 +84,15 @@ export async function GET() {
     calculateProgress(goal, avgMonthlySavings)
   );
 
-  return NextResponse.json(goalsWithProgress);
+  return NextResponse.json({
+    goals: goalsWithProgress,
+    meta: {
+      isFinancialMonth,
+      financialStartDay,
+      periodStart: threeMonthsAgoBoundaries.start,
+      periodEnd: currentFinancialMonth.end,
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

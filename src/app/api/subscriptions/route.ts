@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getFinancialMonthStartDay } from '@/lib/settings';
+import { addFinancialMonths, getFinancialMonthBoundaries } from '@/lib/utils';
 import {
   detectSubscriptions,
   calculateMonthlyTotal,
@@ -9,11 +11,15 @@ import {
 
 export async function GET() {
   const supabase = await createClient();
+  const financialStartDay = await getFinancialMonthStartDay();
+  const isFinancialMonth = financialStartDay !== 1;
+  const now = new Date();
 
-  // Get transactions from last 12 months for pattern detection
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-  const startDate = twelveMonthsAgo.toISOString().split('T')[0];
+  // Get transactions from last 12 financial months for pattern detection
+  const currentFinancialMonth = getFinancialMonthBoundaries(now, financialStartDay);
+  const twelveMonthsAgoDate = addFinancialMonths(now, -12, financialStartDay);
+  const twelveMonthsAgoBoundaries = getFinancialMonthBoundaries(twelveMonthsAgoDate, financialStartDay);
+  const startDate = twelveMonthsAgoBoundaries.start;
 
   const { data: transactions, error } = await supabase
     .from('transactions')
@@ -56,5 +62,11 @@ export async function GET() {
     subscriptions,
     totalMonthly: Math.round(totalMonthly * 100) / 100,
     upcomingPayments,
+    meta: {
+      isFinancialMonth,
+      financialStartDay,
+      periodStart: startDate,
+      periodEnd: currentFinancialMonth.end,
+    },
   });
 }

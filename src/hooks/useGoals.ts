@@ -25,8 +25,16 @@ interface UpdateGoalData {
   category_id?: string | null;
 }
 
+interface GoalsMeta {
+  isFinancialMonth: boolean;
+  financialStartDay: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
 interface UseGoalsResult {
   goals: GoalWithProgress[];
+  meta: GoalsMeta | null;
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -38,6 +46,7 @@ interface UseGoalsResult {
 
 export function useGoals(): UseGoalsResult {
   const [goals, setGoals] = useState<GoalWithProgress[]>([]);
+  const [meta, setMeta] = useState<GoalsMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +59,8 @@ export function useGoals(): UseGoalsResult {
       if (!response.ok) throw new Error('Failed to fetch goals');
 
       const data = await response.json();
-      setGoals(data);
+      setGoals(data.goals);
+      setMeta(data.meta);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -112,6 +122,7 @@ export function useGoals(): UseGoalsResult {
 
   return {
     goals,
+    meta,
     loading,
     error,
     refresh: fetchGoals,

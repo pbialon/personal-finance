@@ -1,8 +1,8 @@
 'use client';
 
-import { RefreshCw, Loader2 } from 'lucide-react';
+import { RefreshCw, Loader2, Calendar } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn, formatShortDate } from '@/lib/utils';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { getDaysUntilPayment, type SubscriptionFrequency } from '@/lib/subscription-detector';
 
@@ -28,7 +28,7 @@ function getDaysUntilColor(days: number): string {
 }
 
 export function SubscriptionsCard() {
-  const { subscriptions, totalMonthly, loading, refresh } = useSubscriptions();
+  const { subscriptions, totalMonthly, meta, loading, refresh } = useSubscriptions();
 
   if (loading) {
     return (
@@ -86,6 +86,14 @@ export function SubscriptionsCard() {
         </div>
       </CardHeader>
       <CardContent>
+        {meta?.isFinancialMonth && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3 pb-3 border-b">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>
+              Analiza na podstawie 12 miesięcy finansowych
+            </span>
+          </div>
+        )}
         <div className="space-y-3">
           {subscriptions.slice(0, 6).map((sub, index) => {
             const daysUntil = getDaysUntilPayment(sub.nextPayment);

@@ -3,10 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { DetectedSubscription } from '@/lib/subscription-detector';
 
+interface SubscriptionsMeta {
+  isFinancialMonth: boolean;
+  financialStartDay: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
 interface SubscriptionsData {
   subscriptions: DetectedSubscription[];
   totalMonthly: number;
   upcomingPayments: { date: string; merchantName: string; amount: number }[];
+  meta?: SubscriptionsMeta;
 }
 
 let cachedData: SubscriptionsData | null = null;
@@ -48,6 +56,7 @@ export function useSubscriptions() {
     subscriptions: data?.subscriptions || [],
     totalMonthly: data?.totalMonthly || 0,
     upcomingPayments: data?.upcomingPayments || [],
+    meta: data?.meta || null,
     loading,
     error,
     refresh,

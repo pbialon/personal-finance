@@ -7,12 +7,12 @@ import { GoalProgress } from '@/components/goals/GoalProgress';
 import { GoalModal } from '@/components/goals/GoalModal';
 import { GoalFormData } from '@/components/goals/GoalForm';
 import { useGoals } from '@/hooks/useGoals';
-import { Loader2, Plus, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2, Plus, Target, Calendar } from 'lucide-react';
+import { cn, formatShortDate } from '@/lib/utils';
 import type { GoalWithProgress } from '@/types';
 
 export function GoalsCard() {
-  const { goals, loading, error, createGoal, updateGoal, deleteGoal } = useGoals();
+  const { goals, meta, loading, error, createGoal, updateGoal, deleteGoal } = useGoals();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<GoalWithProgress | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -85,6 +85,14 @@ export function GoalsCard() {
           </div>
         </CardHeader>
         <CardContent className={cn('transition-opacity duration-200', loading && 'opacity-60')}>
+          {meta?.isFinancialMonth && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4 pb-3 border-b">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>
+                Średnie oszczędności liczone dla miesięcy finansowych ({formatShortDate(meta.periodStart)} - {formatShortDate(meta.periodEnd)})
+              </span>
+            </div>
+          )}
           {goals.length === 0 && !loading ? (
             <div className="text-center py-8">
               <Target className="h-12 w-12 text-gray-300 mx-auto mb-3" />
