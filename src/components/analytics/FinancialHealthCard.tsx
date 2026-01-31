@@ -3,9 +3,10 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { GaugeChart } from '@/components/charts/GaugeChart';
 import { useFinancialHealth } from '@/hooks/useAnalytics';
-import { Loader2, TrendingUp, TrendingDown, Minus, GitCompare } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Minus, GitCompare, HelpCircle } from 'lucide-react';
 import type { TimePeriodRange } from '@/types';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface FinancialHealthCardProps {
   range: TimePeriodRange;
@@ -58,6 +59,7 @@ function ComponentRow({
   unit = '%',
   inverse = false,
   change,
+  tooltip,
 }: {
   label: string;
   value: number;
@@ -66,11 +68,17 @@ function ComponentRow({
   unit?: string;
   inverse?: boolean;
   change?: number;
+  tooltip?: string;
 }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <span className="text-sm text-gray-600">{label}</span>
+        {tooltip && (
+          <Tooltip content={tooltip}>
+            <HelpCircle className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+          </Tooltip>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">
@@ -188,6 +196,7 @@ export function FinancialHealthCard({ range, compare = false, onCompareToggle }:
             score={data.components.savingsRate.score}
             target={data.components.savingsRate.target}
             change={data.components.savingsRate.change}
+            tooltip="Jaki procent przychodów odkładasz na oszczędności. Cel to minimum 20% - pozwala budować poduszkę finansową i oszczędności długoterminowe."
           />
           <ComponentRow
             label="Wskaźnik wydatków"
@@ -196,6 +205,7 @@ export function FinancialHealthCard({ range, compare = false, onCompareToggle }:
             target={data.components.expenseRatio.target}
             inverse
             change={data.components.expenseRatio.change}
+            tooltip="Jaki procent przychodów przeznaczasz na wydatki. Cel to maksimum 70% - zostaje wtedy 30% na oszczędności i nieprzewidziane wydatki."
           />
           <ComponentRow
             label="Realizacja budżetu"
@@ -203,6 +213,7 @@ export function FinancialHealthCard({ range, compare = false, onCompareToggle }:
             score={data.components.budgetAdherence.score}
             target={data.components.budgetAdherence.target}
             change={data.components.budgetAdherence.change}
+            tooltip="Jak dokładnie trzymasz się zaplanowanego budżetu. Optymalnie 90-110% - zbyt niski wynik oznacza niedoszacowany budżet, zbyt wysoki to przekroczenie planu."
           />
           <ComponentRow
             label="Stabilność przychodów"
@@ -210,6 +221,7 @@ export function FinancialHealthCard({ range, compare = false, onCompareToggle }:
             score={data.components.incomeStability.score}
             unit=" CV"
             change={data.components.incomeStability.change}
+            tooltip="Współczynnik zmienności (CV) Twoich przychodów. Im niższy, tym bardziej przewidywalne dochody. CV=0 to idealna stabilność, CV>50 to duża zmienność."
           />
         </div>
       </CardContent>
