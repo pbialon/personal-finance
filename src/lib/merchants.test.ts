@@ -147,4 +147,60 @@ describe('findBestMerchantMatch', () => {
       expect(findBestMerchantMatch('BIEDRONKA 1234 KRAKOW', realMerchants)?.id).toBe('1');
     });
   });
+
+  // Tests for alias matching
+  describe('findBestMerchantMatch with aliases', () => {
+    const merchantsWithAliases = [
+      { id: '1', name: 'żabka', aliases: [{ alias: 'zabka' }, { alias: 'zabka express' }] },
+      { id: '2', name: 'orlen', aliases: [{ alias: 'pkn orlen' }, { alias: 'bliska' }] },
+      { id: '3', name: 'carrefour', aliases: [{ alias: 'carrefour express' }, { alias: 'carrefour market' }] },
+      { id: '4', name: 'netflix', aliases: [] },
+      { id: '5', name: 'spotify', aliases: [{ alias: 'spotify ab' }] },
+    ];
+
+    it('matches exact primary name', () => {
+      expect(findBestMerchantMatch('ŻABKA WARSZAWA', merchantsWithAliases)?.id).toBe('1');
+    });
+
+    it('matches exact alias', () => {
+      expect(findBestMerchantMatch('ZABKA EXPRESS 123 KRAKOW', merchantsWithAliases)?.id).toBe('1');
+      expect(findBestMerchantMatch('PKN ORLEN SA WARSZAWA', merchantsWithAliases)?.id).toBe('2');
+      expect(findBestMerchantMatch('BLISKA STACJA PALIW', merchantsWithAliases)?.id).toBe('2');
+    });
+
+    it('matches by containment on alias', () => {
+      expect(findBestMerchantMatch('CARREFOUR MARKET ZŁOTE TARASY', merchantsWithAliases)?.id).toBe('3');
+    });
+
+    it('matches fuzzy on alias', () => {
+      expect(findBestMerchantMatch('SPOTIFY PREMIUM STOCKHOLM', merchantsWithAliases)?.id).toBe('5');
+    });
+
+    it('handles merchants with empty aliases array', () => {
+      expect(findBestMerchantMatch('NETFLIX.COM LOS GATOS', merchantsWithAliases)?.id).toBe('4');
+    });
+
+    it('returns null when no match found', () => {
+      expect(findBestMerchantMatch('UNKNOWN MERCHANT XYZ', merchantsWithAliases)).toBeNull();
+    });
+
+    it('matches aliases case-insensitively', () => {
+      expect(findBestMerchantMatch('zabka', merchantsWithAliases)?.id).toBe('1');
+      expect(findBestMerchantMatch('ZABKA', merchantsWithAliases)?.id).toBe('1');
+      expect(findBestMerchantMatch('Zabka', merchantsWithAliases)?.id).toBe('1');
+    });
+  });
+
+  describe('matching priority order', () => {
+    const merchants = [
+      { id: '1', name: 'biedronka', aliases: [{ alias: 'lidl' }] },
+      { id: '2', name: 'lidl', aliases: [] },
+    ];
+
+    it('prefers exact name match over alias match', () => {
+      // 'lidl' is both alias of merchant 1 and name of merchant 2
+      // Should match merchant 2 (exact name) not merchant 1 (alias)
+      expect(findBestMerchantMatch('LIDL WARSZAWA POL', merchants)?.id).toBe('2');
+    });
+  });
 });

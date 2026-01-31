@@ -70,24 +70,37 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
   };
 
   const handleUpdate = async (data: {
+    name: string;
     display_name: string;
     icon_url: string | null;
     category_id: string | null;
     website: string | null;
-  }) => {
+    aliases: string[];
+  }): Promise<{ error?: string } | void> => {
     try {
       const response = await fetch('/api/merchants', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...data }),
       });
+
       if (response.ok) {
         const updated = await response.json();
         setMerchant(updated);
         setShowEditModal(false);
+        return;
       }
+
+      // Handle conflict errors
+      if (response.status === 409 || response.status === 400) {
+        const errorData = await response.json();
+        return { error: errorData.error };
+      }
+
+      return { error: 'Wystąpił błąd podczas zapisywania' };
     } catch (error) {
       console.error('Failed to update merchant:', error);
+      return { error: 'Wystąpił błąd podczas zapisywania' };
     }
   };
 
@@ -244,11 +257,24 @@ export default function MerchantDetailPage({ params }: MerchantDetailPageProps) 
             <h1 className="text-xl font-bold text-gray-900">
               {merchant.display_name}
             </h1>
-            {merchant.name !== merchant.display_name && (
-              <p className="text-sm text-gray-500 mt-0.5">
+            {/* Matching keys */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-mono text-gray-700">
                 {merchant.name}
-              </p>
-            )}
+              </span>
+              {merchant.aliases && merchant.aliases.length > 0 && (
+                <>
+                  {merchant.aliases.map((a) => (
+                    <span
+                      key={a.id}
+                      className="px-2 py-0.5 bg-gray-50 border border-gray-200 rounded text-xs font-mono text-gray-500"
+                    >
+                      {a.alias}
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
             {category ? (
               <div
                 className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium mt-2"

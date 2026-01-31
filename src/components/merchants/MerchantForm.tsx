@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -12,33 +12,88 @@ interface MerchantFormProps {
   merchant: Merchant;
   categories: Category[];
   onSubmit: (data: {
+    name: string;
     display_name: string;
     icon_url: string | null;
     category_id: string | null;
     website: string | null;
-  }) => Promise<void>;
+    aliases: string[];
+  }) => Promise<{ error?: string } | void>;
   onCancel: () => void;
 }
 
 export function MerchantForm({ merchant, categories, onSubmit, onCancel }: MerchantFormProps) {
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState(merchant.name);
   const [displayName, setDisplayName] = useState(merchant.display_name);
   const [iconUrl, setIconUrl] = useState(merchant.icon_url || '');
   const [categoryId, setCategoryId] = useState(merchant.category_id || '');
   const [website, setWebsite] = useState(merchant.website || '');
+  const [aliases, setAliases] = useState<string[]>(
+    merchant.aliases?.map(a => a.alias) || []
+  );
+  const [newAlias, setNewAlias] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [aliasError, setAliasError] = useState<string | null>(null);
+
+  const handleAddAlias = () => {
+    const alias = newAlias.toLowerCase().trim();
+    if (!alias) return;
+
+    // Validate
+    if (alias === name.toLowerCase().trim()) {
+      setAliasError('Alias nie może być taki sam jak główny klucz');
+      return;
+    }
+    if (aliases.includes(alias)) {
+      setAliasError('Ten alias już istnieje');
+      return;
+    }
+
+    setAliases([...aliases, alias]);
+    setNewAlias('');
+    setAliasError(null);
+  };
+
+  const handleRemoveAlias = (aliasToRemove: string) => {
+    setAliases(aliases.filter(a => a !== aliasToRemove));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddAlias();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!displayName) return;
+    if (!displayName || !name.trim()) return;
 
+    setNameError(null);
+    setAliasError(null);
     setLoading(true);
+
     try {
-      await onSubmit({
+      const result = await onSubmit({
+        name: name.toLowerCase().trim(),
         display_name: displayName,
         icon_url: iconUrl || null,
         category_id: categoryId || null,
         website: website || null,
+        aliases,
       });
+
+      if (result?.error) {
+        // Check if error is related to name or alias
+        if (result.error.includes('Klucz') || result.error.includes('głównym kluczem')) {
+          setNameError(result.error);
+        } else if (result.error.includes('Alias') || result.error.includes('alias')) {
+          setAliasError(result.error);
+        } else {
+          setNameError(result.error);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -48,11 +103,83 @@ export function MerchantForm({ merchant, categories, onSubmit, onCancel }: Merch
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-gray-50 rounded-lg p-3 mb-4">
-        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-          Klucz dopasowania
+      {/* Primary matching key */}
+      <div>
+        <Input
+          label="Klucz dopasowania (główny)"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setNameError(null);
+          }}
+          placeholder="np. zabka"
+          className="font-mono"
+          required
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Główny klucz do rozpoznawania transakcji
         </p>
-        <p className="text-sm text-gray-900 font-mono">{merchant.name}</p>
+        {nameError && (
+          <p className="text-xs text-red-600 mt-1">{nameError}</p>
+        )}
+      </div>
+
+      {/* Aliases section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Dodatkowe klucze dopasowania
+        </label>
+
+        {/* Existing aliases as chips */}
+        {aliases.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {aliases.map((alias) => (
+              <span
+                key={alias}
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-full text-sm font-mono"
+              >
+                {alias}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAlias(alias)}
+                  className="p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-500" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Add new alias */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newAlias}
+            onChange={(e) => {
+              setNewAlias(e.target.value);
+              setAliasError(null);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="np. żabka express"
+            className="flex-1 px-3 py-2 text-sm font-mono border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleAddAlias}
+            disabled={!newAlias.trim()}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          Aliasy dla różnych wariantów nazwy kontrahenta
+        </p>
+        {aliasError && (
+          <p className="text-xs text-red-600 mt-1">{aliasError}</p>
+        )}
       </div>
 
       <Input

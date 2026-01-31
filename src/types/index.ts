@@ -8,6 +8,13 @@ export interface Category {
   created_at: string;
 }
 
+export interface MerchantAlias {
+  id: string;
+  merchant_id: string;
+  alias: string;
+  created_at: string;
+}
+
 export interface Merchant {
   id: string;
   name: string;
@@ -18,6 +25,7 @@ export interface Merchant {
   created_at: string;
   updated_at: string;
   category?: Category;
+  aliases?: MerchantAlias[];
 }
 
 export interface Transaction {

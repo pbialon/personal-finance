@@ -18,28 +18,17 @@ export async function findOrCreateMerchant(
     return null;
   }
 
-  // Get existing merchants for matching
+  // Get existing merchants with aliases for matching
   const { data: existingMerchants } = await supabase
     .from('merchants')
-    .select('id, name');
+    .select('id, name, aliases:merchant_aliases(alias)');
 
   const merchants = existingMerchants || [];
 
-  // Try to find existing merchant match
+  // Try to find existing merchant match (now checks both names and aliases)
   const match = findBestMerchantMatch(counterpartyName, merchants);
   if (match) {
     return match.id;
-  }
-
-  // Check aliases
-  const { data: aliasMatch } = await supabase
-    .from('merchant_aliases')
-    .select('merchant_id')
-    .eq('alias', brandName)
-    .maybeSingle();
-
-  if (aliasMatch) {
-    return aliasMatch.merchant_id;
   }
 
   // Create new merchant with extracted brand name

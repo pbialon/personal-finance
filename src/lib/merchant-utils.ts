@@ -244,28 +244,65 @@ function calculateSimilarity(a: string, b: string): number {
   return 1 - distance / Math.max(a.length, b.length);
 }
 
+interface MerchantWithAliases {
+  id: string;
+  name: string;
+  aliases?: { alias: string }[];
+}
+
 /**
  * Find best matching merchant from existing merchants.
+ * Priority order:
+ * 1. Exact match on merchants.name
+ * 2. Exact match on aliases
+ * 3. Containment on merchants.name
+ * 4. Containment on aliases
+ * 5. Fuzzy (Levenshtein >= threshold) on name and aliases
  */
 export function findBestMerchantMatch(
   counterpartyName: string,
-  existingMerchants: { id: string; name: string }[],
+  existingMerchants: MerchantWithAliases[],
   threshold: number = 0.7
-): { id: string; name: string } | null {
+): MerchantWithAliases | null {
   const brand = extractBrandName(counterpartyName);
   if (!brand) return null;
 
   const brandLower = brand.toLowerCase();
 
-  // Try exact match first (case-insensitive)
+  // PRIORITY 1: Exact match on primary name (case-insensitive)
   for (const merchant of existingMerchants) {
     const merchantNameLower = merchant.name.toLowerCase();
     if (merchantNameLower === brandLower) {
       return merchant;
     }
-    // Also check if brand is contained in merchant name or vice versa
+  }
+
+  // PRIORITY 2: Exact match on aliases
+  for (const merchant of existingMerchants) {
+    const aliases = merchant.aliases || [];
+    for (const { alias } of aliases) {
+      if (alias.toLowerCase() === brandLower) {
+        return merchant;
+      }
+    }
+  }
+
+  // PRIORITY 3: Containment on primary name
+  for (const merchant of existingMerchants) {
+    const merchantNameLower = merchant.name.toLowerCase();
     if (merchantNameLower.includes(brandLower) || brandLower.includes(merchantNameLower)) {
       return merchant;
+    }
+  }
+
+  // PRIORITY 4: Containment on aliases
+  for (const merchant of existingMerchants) {
+    const aliases = merchant.aliases || [];
+    for (const { alias } of aliases) {
+      const aliasLower = alias.toLowerCase();
+      if (aliasLower.includes(brandLower) || brandLower.includes(aliasLower)) {
+        return merchant;
+      }
     }
   }
 
@@ -277,16 +314,27 @@ export function findBestMerchantMatch(
     }
   }
 
-  // Try fuzzy match
-  let bestMatch: { id: string; name: string } | null = null;
+  // PRIORITY 5: Fuzzy match on name and aliases
+  let bestMatch: MerchantWithAliases | null = null;
   let bestScore = threshold;
 
   for (const merchant of existingMerchants) {
+    // Check primary name
     const merchantLower = merchant.name.toLowerCase();
-    const score = calculateSimilarity(brandLower, merchantLower);
-    if (score > bestScore) {
-      bestScore = score;
+    const nameScore = calculateSimilarity(brandLower, merchantLower);
+    if (nameScore > bestScore) {
+      bestScore = nameScore;
       bestMatch = merchant;
+    }
+
+    // Check aliases
+    const aliases = merchant.aliases || [];
+    for (const { alias } of aliases) {
+      const aliasScore = calculateSimilarity(brandLower, alias.toLowerCase());
+      if (aliasScore > bestScore) {
+        bestScore = aliasScore;
+        bestMatch = merchant;
+      }
     }
   }
 
